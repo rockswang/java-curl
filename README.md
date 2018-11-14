@@ -53,6 +53,9 @@ CUrl类是以命令行工具CUrl为参考，使用标准Java的HttpURLConnection
 * "--retry-max-time"及retry方法：设定最长重试总时间，单位秒，默认0，即永不超时
 * "-s", "--silent"：设定静默模式，即屏蔽所有输出
 * "--stderr"及stderr方法：设定stderr的输出文件/IO对象，默认输出到标准输出上，即exec方法的返回值
+* "-u", "--user"：设定服务器登录信息
 * "--url"及url方法：设定请求地址，本CUrl库不支持多url请求
 * "-A", "--user-agent"：设定"User-Agent"请求头内容
 * "-X", "--request"：指定HTTP请求方法
+* "--x-max-download"：下载的最大字节数（非精确）
+* "--x-tags"：设定额外的键值对信息，存储在当前CUrl实例中，用于在编程中传递额外参数
