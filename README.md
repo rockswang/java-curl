@@ -2,14 +2,15 @@
 CUrl类是以命令行工具CUrl为参考，使用标准Java的HttpURLConnection实现的Http工具类。
 
 # 特点
-* 基于标准Java内置Http相关类实现，源码兼容级别为Java1.6，兼容性好，可以直接运行在标准java，Android等平台上
-* 代码超级精简紧凑，全部代码在一个1000多行的Java源文件中，无任何外部依赖，可以不用Maven直接源码级重用
-* 支持CUrl命令行工具的绝大多数常用开关，可直接替代使用
+* 基于标准Java运行库的Http类实现，源码兼容级别为1.6，适用性广泛，可用于服务端、Android等Java环境
+* 代码精简紧凑，仅一个不到2000行的Java源文件，无任何外部依赖，可不用Maven直接源码级重用
+* 支持CUrl命令行工具的常用开关，可直接作为命令行工具替代之
 * 支持所有HTTP Method，支持多文件上传
-* 通过ThreadLocal解决了Cookie只能全局设定的问题，支持每线程独立的Cookie
-* 支持HTTPS
-* 支持代理服务器，支持需认证的HTTP/HTTPS代理
-* 支持编程自定义应答转换器
+* 通过ThreadLocal解决了标准Java中Cookie只能全局保存的问题，可每线程独立维护Cookie
+* 支持HTTP认证，支持HTTPS，可忽略证书安全
+* 支持每连接代理，支持需认证的HTTP/HTTPS代理
+* 跳转行为可控制，可获取到每步跳转的应答头信息
+* 支持编程自定义应答解析器
 * 支持失败重试，可编程自定义可重试异常
 
 # 支持的参数
@@ -20,8 +21,8 @@ CUrl类是以命令行工具CUrl为参考，使用标准Java的HttpURLConnection
 * "-d", "--data", "--data-ascii"及data方法：
      * 添加post数据，如果多次使用，则使用'&'连接，后添加的表单项键值对会覆盖之前的；
      * 如果data以'@'开头，则后面部分作为文件名，数据由该文件读入，且删除文件中的回车换行
-"--data-raw"：同"--data"，但不对'@'特殊处理
-"--data-binary"：同"--data"，但读入文件时不删除回车换行字符
+* "--data-raw"：同"--data"，但不对'@'特殊处理
+* "--data-binary"：同"--data"，但读入文件时不删除回车换行字符
 * "--data-urlencode"及data(String,String)方法：同"--data"，但对数据进行Url-Encode，可以在此选项后面附加字符集，比如"--data-urlencode-GBK"
      * 如果参数值首字符为'='：对'='后面的字符串整体进行Url-Encode
      * 如果参数值中包含'='：将字符串拆分为以'&'分割的键值对，键值对用'='分割，对键值对中所有的值进行Url-Encode
@@ -41,6 +42,7 @@ CUrl类是以命令行工具CUrl为参考，使用标准Java的HttpURLConnection
      *  "X-Custom-Header;": 添加/设定一个值为空的自定义请求头
 * "-I", "--head"：使用HEAD方法请求
 * "--ignore-content-length"：在POST请求头中不包含Content-Length头信息
+* "-k", "--insecure": 忽略HTTPS证书安全检查
 * "-L", "--location"及location方法：自动跟随跳转（默认不开启）
 * "-m", "--max-time"及timeout方法：传输超时时间，单位秒，默认0，即永不超时
 * "--no-keepalive"：不发出"Connection: keep-alive"请求头
@@ -57,5 +59,15 @@ CUrl类是以命令行工具CUrl为参考，使用标准Java的HttpURLConnection
 * "--url"及url方法：设定请求地址，本CUrl库不支持多url请求
 * "-A", "--user-agent"：设定"User-Agent"请求头内容
 * "-X", "--request"：指定HTTP请求方法
-* "--x-max-download"：下载的最大字节数（非精确）
+* "--x-max-download"：传输达到给定字节数（非精确）后放弃下载
 * "--x-tags"：设定额外的键值对信息，存储在当前CUrl实例中，用于在编程中传递额外参数
+
+# 例子
+
+## 通过Fiddler代理（抓包工具）访问HTTPS站点
+```java
+new CUrl("https://www.baidu.com/")
+    .proxy("127.0.0.1", 8888)
+    .opt("-k")
+    .exec();
+```
