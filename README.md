@@ -1,3 +1,6 @@
+[![Licence](https://img.shields.io/badge/licence-Apache%20Licence%20%282.0%29-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.rockswang/java-curl.svg)](https://mvnrepository.com/artifact/com.github.rockswang/java-curl)
+
 # 简介
 CUrl类是以命令行工具CUrl为参考，使用标准Java的HttpURLConnection实现的Http工具类。
 

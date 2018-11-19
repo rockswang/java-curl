@@ -874,7 +874,7 @@ public final class CUrl {
 		String host = null;
 		try { host = new URI(url).getHost(); } catch (Exception ignored) { }
 		for (String[] pair: Util.split(input, ";", "=")) {
-			HttpCookie cookie = new HttpCookie(pair[0], Util.urlDecode(pair[1]));
+			HttpCookie cookie = new HttpCookie(pair[0], Util.urlDecode(pair[1], "UTF-8"));
 			cookie.setDomain(host);
 			cookie.setPath("/");
 			cookie.setSecure(false);
@@ -1166,27 +1166,12 @@ public final class CUrl {
 	@SuppressWarnings({"WeakerAccess", "JavaDoc", "ConstantConditions", "ResultOfMethodCallIgnored", "StatementWithEmptyBody", "UnusedReturnValue", "SuspiciousMethodCalls"})
 	final static class Util {
 
-		/**
-		 * 判断字符串是否为空，即null或空字符串
-		 *
-		 * @param s
-		 * @return
-		 */
 		public static boolean empty(String s) {
 			return s == null || s.length() == 0;
 		}
 
-		/**
-		 * 将o转换为List<T>。
-		 * 如o为null，返回空列表；如o为Collection或数组，返回使用o的元素填充的列表；否则，返回包含o的单元素列表。
-		 *
-		 * @param o
-		 */
-		@SuppressWarnings("unchecked")
 		public static <T> List<T> asList(Object o) {
-			if (o == null) {
-				return new ArrayList<T>(0);
-			}
+			if (o == null) return new ArrayList<T>(0);
 			if (o instanceof Collection) {
 				return new ArrayList<T>((Collection<T>) o);
 			} else if (o.getClass().isArray()) {
@@ -1198,24 +1183,11 @@ public final class CUrl {
 			}
 		}
 
-		/**
-		 * 返回给定值的引号表示，如给定null或数值型，则不使用引号。可用于处理SQL值
-		 *
-		 * @param o
-		 * @return
-		 */
 		public static String qt(Object o) {
 			return o == null || o instanceof Boolean || o instanceof Number ?
 					"" + o : o instanceof Character ? "'" + o + "'" : "\"" + o + "\"";
 		}
 
-		/**
-		 * 将给定异常对象转换为字符串
-		 *
-		 * @param e
-		 * @param singleLine 是否单行输出，即将回车、换行、制表转义
-		 * @return
-		 */
 		public static String dumpStackTrace(Throwable e, boolean singleLine) {
 			StringWriter sw = new StringWriter();
 			e.printStackTrace(new PrintWriter(sw));
@@ -1223,119 +1195,47 @@ public final class CUrl {
 			return singleLine ? s.replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t") : s;
 		}
 
-		/**
-		 * 向标准错误输出System.err格式化输出一条信息
-		 *
-		 * @param msg
-		 * @param args
-		 */
 		public static void logStderr(String msg, Object... args) {
 			if (args.length > 0) msg = String.format(msg, args);
 			System.err.println("[ERR] [" + new Date() + "] " + msg);
 		}
 
-		///////////////////////////// Collections Utils /////////////////////////////////
-
-		/**
-		 * 安全从Map中获取给定键的对应值，如果map为空，或不存在给定键，则返回默认值
-		 *
-		 * @param map
-		 * @param key
-		 * @param fallback
-		 * @return
-		 */
 		public static <K, V> V mapGet(Map<K, V> map, K key, V fallback) {
 			V v;
 			return map != null && (v = map.get(key)) != null ? v : fallback;
 		}
 
-		/**
-		 * 向给定MapList中一次性加入0至多个值
-		 *
-		 * @param map
-		 * @param key
-		 * @param val
-		 */
-//	@SafeVarargs
 		public static <K, V> Map<K, List<V>> mapListAdd(Map<K, List<V>> map, K key, V... val) {
 			return mapListAdd(map, ArrayList.class, key, val);
 		}
 
-		/**
-		 * 向给定MapCollection中一次性加入0至多个值，如子容器不存在，则使用collectionClass创建之
-		 *
-		 * @param map
-		 * @param collectionClass
-		 * @param key
-		 * @param val
-		 */
-		@SuppressWarnings({"rawtypes", "unchecked"})
-//	@SafeVarargs
 		public static <K, V, L extends Collection<V>> Map<K, L> mapListAdd(Map<K, L> map, Class<? extends Collection> collectionClass, K key, V... val) {
 			L l;
 			if ((l = map.get(key)) == null) try {
 				map.put(key, l = (L) collectionClass.newInstance());
-			} catch (Exception ignored) {
-			}
+			} catch (Exception ignored) { }
 			Collections.addAll(l, val);
 			return map;
 		}
 
-		/**
-		 * 从给定MapMap中，根据键，子键获取对应值，如不存在，则返回默认值
-		 *
-		 * @param map
-		 * @param key
-		 * @param subkey
-		 * @param fallback
-		 * @return
-		 */
 		public static <K, S, V, M extends Map<S, V>> V mapMapGet(Map<K, M> map, K key, S subkey, V fallback) {
 			M m;
 			V ret;
 			return (m = map.get(key)) != null && (ret = m.get(subkey)) != null ? ret : fallback;
 		}
 
-		/**
-		 * 用于安全遍历一个可能为空的迭代器
-		 *
-		 * @param iter
-		 * @return
-		 */
 		public static <T> Iterable<T> safeIter(Iterable<T> iter) {
 			return iter != null ? iter : new ArrayList<T>(0);
 		}
 
-		/**
-		 * 用于安全遍历一个可能为空的数组
-		 *
-		 * @param array
-		 * @param componentType
-		 * @return
-		 */
-		@SuppressWarnings("unchecked")
 		public static <T> T[] safeArray(T[] array, Class<T> componentType) {
 			return array != null ? array : (T[]) Array.newInstance(componentType, 0);
 		}
 
-		/**
-		 * 创建一个给定键值类型的HashMap，并使用0至多个键值对填充
-		 *
-		 * @param keyValuePairs
-		 * @return
-		 */
 		public static Map<String, Object> newMap(Object... keyValuePairs) {
 			return mapPut(new LinkedHashMap<String, Object>(), keyValuePairs);
 		}
 
-		/**
-		 * 使用给定的0至多个键值对填充传入的Map
-		 *
-		 * @param map
-		 * @param keyValuePairs
-		 * @return
-		 */
-		@SuppressWarnings("unchecked")
 		public static <K, V, M extends Map<K, V>> M mapPut(M map, Object... keyValuePairs) {
 			if ((keyValuePairs.length & 1) != 0)
 				throw new IllegalArgumentException("the number of keyValuePairs arguments must be odd");
@@ -1345,28 +1245,11 @@ public final class CUrl {
 			return map;
 		}
 
-		/**
-		 * 使用0至多个值来填充给定List容器
-		 *
-		 * @param list
-		 * @param values
-		 * @return
-		 */
-//	@SafeVarargs
 		public static <T, L extends Collection<T>> L listAdd(L list, T... values) {
 			list.addAll(Arrays.asList(values));
 			return list;
 		}
 
-////////////////////////////// Utility Data Structures ///////////////////////
-
-		/**
-		 * 单个对象及一个整数的快速引用，
-		 * Ref, Ref2, Ref3为简单的容器类，可用于：
-		 * * 包装基本类型，与代码闭包（Java匿名内部类）互传数据
-		 * * 方法一次返回固定数量的多个返回值，可代替Object[]，类型安全
-		 * * 覆盖了equals和hashCode方法，因此可以作为Map/Set的键
-		 */
 		public static class Ref<T> {
 			public int i;
 			public T v;
@@ -1396,7 +1279,6 @@ public final class CUrl {
 				this.i = i;
 			}
 
-			@SuppressWarnings("unchecked")
 			@Override
 			public boolean equals(Object obj) {
 				if (!(obj instanceof Ref)) return false;
@@ -1416,42 +1298,17 @@ public final class CUrl {
 
 		}
 
-		//////////////////////////////// String Utils /////////////////////////////////////
-
-		public static String urlDecode(String s) {
-			return urlDecode(s, "UTF-8");
-		}
-
 		public static String urlDecode(String s, String enc) {
 			if (!empty(s)) try {
 				return URLDecoder.decode(s, enc);
-			} catch (Exception ignored) {
-			}
+			} catch (Exception ignored) { }
 			return s;
 		}
 
-		/**
-		 * 使用charset指定的字符编码把字节数组bb转换为字符串
-		 *
-		 * @param bb
-		 * @param charset  如为null则默认UTF-8
-		 * @param fallback
-		 * @return
-		 */
 		public static String b2s(byte[] bb, String charset, String fallback) {
 			return b2s(bb, 0, bb.length, charset, fallback);
 		}
 
-		/**
-		 * 使用给定的编码方式将传入的字节数组片段解码为字符串
-		 *
-		 * @param bb
-		 * @param offset   字节数组中的起始偏移量
-		 * @param count    字节长度
-		 * @param charset  字符串编码，为null则为UTF-8
-		 * @param fallback 转换失败的默认值
-		 * @return
-		 */
 		public static String b2s(byte[] bb, int offset, int count, String charset, String fallback) {
 			try {
 				int start = bb.length - offset >= 3 && bb[offset] == 0xEF && bb[offset + 1] == 0xBB && bb[offset + 2] == 0xBF ? 3 : 0; // deal BOM
@@ -1461,13 +1318,6 @@ public final class CUrl {
 			}
 		}
 
-		/**
-		 * 用给定字符串编码将给定字符串编码为字节数组
-		 *
-		 * @param s
-		 * @param charset 字符串编码，为null则为UTF-8
-		 * @return
-		 */
 		public static byte[] s2b(String s, String charset) {
 			try {
 				return s.getBytes(charset == null ? "UTF-8" : charset);
@@ -1476,14 +1326,6 @@ public final class CUrl {
 			}
 		}
 
-		/**
-		 * 先用delim1分割给定字符串，再用delim2分割每个子串。返回二维数组
-		 *
-		 * @param s
-		 * @param delim1
-		 * @param delim2
-		 * @return
-		 */
 		public static String[][] split(String s, String delim1, String delim2) {
 			String[] ss = s.split(delim1);
 			String[][] result = new String[ss.length][];
@@ -1491,15 +1333,6 @@ public final class CUrl {
 			return result;
 		}
 
-		/**
-		 * 先用entryDelim分割给定字符串，再用kvDelim分割每个子串。返回映射
-		 *
-		 * @param s
-		 * @param entryDelim
-		 * @param kvDelim
-		 * @param toMap      将键值对填充，可为null
-		 * @return toMap，如传入toMap为null，则返回新创建并填充的HashMap
-		 */
 		public static Map<String, String> split(String s, String entryDelim, String kvDelim, Map<String, String> toMap) {
 			String[] ss = s.split(entryDelim);
 			if (toMap == null) toMap = new HashMap<String, String>(ss.length);
@@ -1510,14 +1343,6 @@ public final class CUrl {
 			return toMap;
 		}
 
-		/**
-		 * 使用delim和subDelim连接二维数组，二维集合或映射
-		 *
-		 * @param mapOrColl 可以是Map, Collection<Collection<?>>, Collection<?>[], Collection<?[]>, ?[][]
-		 * @param delim     子串间连接符
-		 * @param subDelim  子串内连接符
-		 * @return
-		 */
 		public static String join(Object mapOrColl, String delim, String subDelim) {
 			List<List<Object>> all = new ArrayList<List<Object>>();
 			if (mapOrColl == null) { // do nothing
@@ -1543,9 +1368,6 @@ public final class CUrl {
 			return sb.toString();
 		}
 
-		/**
-		 * Base64编码。此方法在不同平台上调用平台本地方法进行编码。
-		 */
 		public static String base64Encode(byte[] bb) {
 			Class<?> clz = getClass("java.util.Base64", null);
 			if (clz != null) {
@@ -1568,18 +1390,10 @@ public final class CUrl {
 			throw new RuntimeException(new NoSuchMethodException("base64Encode"));
 		}
 
-		////////////////////////////////// IO Utils ///////////////////////////////////
-
 		public static byte[] readStream(InputStream is, boolean close) {
 			return readStream(is, 0, close);
 		}
 
-		/**
-		 * 从输入流中读取数据，如果输入流达到文件末(EOF)，则返回null
-		 *
-		 * @param is
-		 * @return null if EOF reached
-		 */
 		public static byte[] readStream(InputStream is, int interruptOnSize, boolean close) {
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			int count = 0, c;
@@ -1597,13 +1411,6 @@ public final class CUrl {
 
 		private static final int BUFFER_SIZE = 10000;
 
-		/**
-		 * 从输入流直接管道传送到输出流
-		 *
-		 * @param source
-		 * @param destination
-		 * @return 如小于0则说明输入流已到达文件末；返回值和PIPE_COUNT_MASK相与的结果为传送数据的字节长度
-		 */
 		public static int pipeStream(InputStream source, OutputStream destination) {
 			byte[] bb = new byte[BUFFER_SIZE];
 			int len, count = 0;
@@ -1613,19 +1420,14 @@ public final class CUrl {
 					len = source.read(bb);
 				} catch (SocketTimeoutException e) { // no data, but the socket connection is still alive
 				} catch (SocketException e) { // EOF or socket disconnected
-//				LogUtil.error(TaskAllocator.logger, ">>pipeStream.SocketExcetion,len=" + len + ",e=");
-//				LogUtil.error(TaskAllocator.logger, Util.stackTraceToString(e));
 					len = -1;
 				} catch (IOException e) { // unexpected exceptions
-//				LogUtil.error(TaskAllocator.logger, Util.stackTraceToString(e));
 					throw new RuntimeException(e);
 				}
 				if (len > 0) {
 					try {
 						destination.write(bb, 0, len);
-//					LogUtil.info(TaskAllocator.debug, new String(bb, 0, len));
 					} catch (IOException e) { // unexpected exceptions while writing
-//					LogUtil.error(TaskAllocator.logger, Util.stackTraceToString(e));
 						throw new RuntimeException(e);
 					}
 					count += len;
@@ -1634,12 +1436,6 @@ public final class CUrl {
 			return len < 0 ? (0x80000000 | count) : count; // len < 0 -> EOF reached
 		}
 
-		/**
-		 * 递归创建给定目录及其所有父目录。
-		 * 和File.mkdirs不同的是，此方法会设定所有创建的目录为可读写
-		 *
-		 * @param dir
-		 */
 		public static void mkdirs(File dir) {
 			File parent = dir.getAbsoluteFile();
 			List<File> mkdir = new ArrayList<File>();
@@ -1654,15 +1450,6 @@ public final class CUrl {
 			}
 		}
 
-//////////////////////////////// Reflection Utils ////////////////////////////////////
-
-		/**
-		 * 使用传入的classloader加载给定类
-		 *
-		 * @param className
-		 * @param cl        如为空则使用Util类的加载器
-		 * @return
-		 */
 		public static Class<?> getClass(String className, ClassLoader cl) {
 			try {
 				return (cl != null ? cl : CUrl.class.getClassLoader()).loadClass(className);
@@ -1671,15 +1458,6 @@ public final class CUrl {
 			}
 		}
 
-		/**
-		 * 通过反射调用类的构造方法来创建一个该类对象
-		 *
-		 * @param cls       类，不可为空
-		 * @param signature 构造方法的参数签名，可为null，为null则根据实参数量来查找构造方法
-		 * @param args      构造函数参数列表
-		 * @return
-		 */
-		@SuppressWarnings("unchecked")
 		public static <T> T createInstance(Class<T> cls, String signature, boolean ignoreAccess, Object... args) {
 			if (signature == null && args.length == 0) {
 				try {
@@ -1691,16 +1469,6 @@ public final class CUrl {
 			return (T) invoke(null, cls, "<init>", ignoreAccess, signature, args);
 		}
 
-		/**
-		 * 获取给定实例或类中给定域的值
-		 *
-		 * @param thiz         实例域所属实例，如需要获取静态域，此参数必须为null
-		 * @param cls          静态域所属类，如需要获取实例域，此参数必须为null
-		 * @param fieldName
-		 * @param fallback
-		 * @param ignoreAccess 是否忽略访问控制，如为true，则可以访问非公有域
-		 * @return
-		 */
 		public static Object getField(Object thiz, Class<?> cls, String fieldName, Object fallback, boolean ignoreAccess) {
 			if (thiz == null && cls == null || fieldName == null)
 				throw new NullPointerException("inst=" + thiz + ",class=" + cls + ",field=" + fieldName);
@@ -1717,17 +1485,6 @@ public final class CUrl {
 			return fallback;
 		}
 
-		/**
-		 * 反射调用一个实例或静态方法，并忽略所有异常
-		 *
-		 * @param thiz         实例方法所属实例，如需要调用静态方法，此参数必须为null
-		 * @param cls          静态方法所属类，如需要调用实例方法，此参数必须为null
-		 * @param methodName
-		 * @param ignoreAccess 是否忽略访问控制
-		 * @param signature    方法签名，如为空则根据实参数量查找方法
-		 * @param args         参数列表
-		 * @return
-		 */
 		public static Object invokeSilent(Object thiz, Class<?> cls, String methodName, boolean ignoreAccess, String signature, Object... args) {
 			try {
 				return invoke(thiz, cls, methodName, ignoreAccess, signature, args);
@@ -1736,19 +1493,6 @@ public final class CUrl {
 			return null;
 		}
 
-		/**
-		 * 反射调用一个实例或静态方法
-		 *
-		 * @param thiz         对象实例，如调用静态方法，则必须为null
-		 * @param cls          类，如thiz参数不为null则此参数忽略，直接使用该实例的类
-		 * @param methodName   方法名
-		 * @param ignoreAccess 忽略访问权限
-		 * @param signature    方法参数签名，如"ILjava.lang.String;"，若为null则本方法根据传入的实参数量查找方法；
-		 *                     如果存在多个参数数量相同的同名方法，则必须显式指定方法签名，本方法不会自动根据实参类型进行匹配查找
-		 *                     内部类格式如"Ljava.util.Map$Entry;"
-		 * @param args         被调用方法的实参列表
-		 * @return 被调用方法的返回值
-		 */
 		public static Object invoke(Object thiz, Class<?> cls, String methodName, boolean ignoreAccess, String signature, Object... args) {
 			if (thiz == null && cls == null || methodName == null)
 				throw new NullPointerException("inst=" + thiz + ",class=" + cls + ",method=" + methodName);
@@ -1801,12 +1545,6 @@ public final class CUrl {
 				void.class, 'V',
 				boolean.class, 'Z');
 
-		/**
-		 * 将参数列表转换成签名字符串
-		 *
-		 * @param types
-		 * @return
-		 */
 		public static String getSignature(Class<?>... types) {
 			StringBuilder sb = new StringBuilder();
 			for (Class<?> t : types) {
