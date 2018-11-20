@@ -85,16 +85,17 @@ CUrl类是以命令行工具CUrl为参考，使用标准Java的HttpURLConnection
         CUrl curl = new CUrl("http://httpbin.org/post")
                 .form("formItem", "value") // a plain form item
                 .form("file", inMemFile)           // in-memory "file"
-                .form("image", new CUrl.FileIO("D:\\tmp\\a2.png")); // A file in storage, change it to an existing path to avoid failure
+                .form("image", new CUrl.FileIO("D:\\tmp\\a2.png")); // A file in storage
         curl.exec();
         assertEquals(200, curl.getHttpCode());
     }
 ```
 
-##### 例4：模拟手机模拟器上的AJAX请求，添加自定义请求头
+##### 例4：模拟手机浏览器上的AJAX请求，添加自定义请求头
 ```java
     public void customUserAgentAndHeaders() {
-        String mobileUserAgent = "Mozilla/5.0 (Linux; U; Android 8.0.0; zh-cn; KNT-AL10 Build/HUAWEIKNT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) MQQBrowser/7.3 Chrome/37.0.0.0 Mobile Safari/537.36";
+        String mobileUserAgent = "Mozilla/5.0 (Linux; U; Android 8.0.0; zh-cn; KNT-AL10 Build/HUAWEIKNT-AL10) " 
+                + "AppleWebKit/537.36 (KHTML, like Gecko) MQQBrowser/7.3 Chrome/37.0.0.0 Mobile Safari/537.36";
         Map<String, String> fakeAjaxHeaders = new HashMap<String, String>();
         fakeAjaxHeaders.put("X-Requested-With", "XMLHttpRequest");
         fakeAjaxHeaders.put("Referer", "http://somesite.com/fake_referer");
@@ -152,5 +153,10 @@ CUrl类是以命令行工具CUrl为参考，使用标准Java的HttpURLConnection
 
 ##### 例7：作为命令行工具使用，请求内容参考例4
 ```shell
-java -jar java-curl-1.2.0.jar https://httpbin.org/get -x 127.0.0.1:8888 -k -A "Mozilla/5.0 (Linux; U; Android 8.0.0; zh-cn; KNT-AL10 Build/HUAWEIKNT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) MQQBrowser/7.3 Chrome/37.0.0.0 Mobile Safari/537.36" -H "Referer: http://somesite.com/fake_referer" -H "X-Requested-With: XMLHttpRequest" -H "X-Auth-Token: xxxxxxx"
+java -jar java-curl-1.2.0.jar https://httpbin.org/get ^
+    -x 127.0.0.1:8888 -k ^
+    -A "Mozilla/5.0 (Linux; U; Android 8.0.0; zh-cn; KNT-AL10 Build/HUAWEIKNT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) MQQBrowser/7.3 Chrome/37.0.0.0 Mobile Safari/537.36" ^
+    -H "Referer: http://somesite.com/fake_referer" ^
+    -H "X-Requested-With: XMLHttpRequest" ^
+    -H "X-Auth-Token: xxxxxxx"
 ```
