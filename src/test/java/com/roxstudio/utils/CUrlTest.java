@@ -1,31 +1,32 @@
 package com.roxstudio.utils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonObjectFormatVisitor;
-import org.junit.Assert;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import static org.junit.Assert.assertEquals;
+
 public class CUrlTest {
+
+    private static final boolean ENABLE_FIDDLER_FOR_ALL_TEST = true;
 
     @Test
     public void gzippedResponse() {
-        CUrl curl = new CUrl("http://httpbin.org/gzip")
-                .opt("--compressed") // Suggest the server using gzipped response
-                .proxy("127.0.0.1", 8888).opt("-k");
+        CUrl curl = curl("http://httpbin.org/gzip")
+                .opt("--compressed"); // Suggest the server using gzipped response
         curl.exec();
         assertEquals(curl.getHttpCode(), 200);
     }
 
     @Test
     public void headMethod() {
-        CUrl curl = new CUrl("http://httpbin.org/get")
+        CUrl curl = curl("http://httpbin.org/get")
                 .dumpHeader("-") // output to stdout
                 .opt("--head");
         curl.exec();
@@ -34,7 +35,7 @@ public class CUrlTest {
 
     @Test
     public void getRedirectLocation() {
-        CUrl curl = new CUrl("http://httpbin.org/redirect-to")
+        CUrl curl = curl("http://httpbin.org/redirect-to")
                 .data("url=http://www.baidu.com", "UTF-8") // do URL-Encoding for each form value
                 .opt("--get"); // force using GET method
         curl.exec();
@@ -52,16 +53,16 @@ public class CUrlTest {
 
     @Test
     public void insecureHttpsViaFiddler() {
-        CUrl curl = new CUrl("https://httpbin.org/get")
+        CUrl curl = curl("https://httpbin.org/get")
                 .proxy("127.0.0.1", 8888) // Use Fiddler to capture & parse HTTPS traffic
-                .opt("-k");  // Ignore certificate check since it's issued by Fiddler
+                .insecure();  // Ignore certificate check since it's issued by Fiddler
         curl.exec();
         assertEquals(200, curl.getHttpCode());
     }
 
     @Test
     public void httpPost() {
-        CUrl curl = new CUrl("http://httpbin.org/post")
+        CUrl curl = curl("http://httpbin.org/post")
                 .data("hello=world&foo=bar")
                 .data("foo=overwrite");
         curl.exec();
@@ -72,7 +73,7 @@ public class CUrlTest {
     public void uploadMultipleFiles() {
         CUrl.MemIO inMemFile = new CUrl.MemIO();
         try { inMemFile.getOutputStream().write("text file content blabla...".getBytes()); } catch (Exception ignored) {}
-        CUrl curl = new CUrl("http://httpbin.org/post")
+        CUrl curl = curl("http://httpbin.org/post")
                 .form("formItem", "value") // a plain form item
                 .form("file", inMemFile)           // in-memory "file"
                 .form("image", new CUrl.FileIO("D:\\tmp\\a2.png")); // A file in storage, change it to an existing path to avoid failure
@@ -82,7 +83,7 @@ public class CUrlTest {
 
     @Test
     public void httpBasicAuth() {
-        CUrl curl = new CUrl("http://httpbin.org/basic-auth/abc/aaa")
+        CUrl curl = curl("http://httpbin.org/basic-auth/abc/aaa")
                 .proxy("127.0.0.1", 8888)
                 .opt("-u", "abc:aaa");
         curl.exec();
@@ -90,9 +91,15 @@ public class CUrlTest {
     }
 
     @Test
-    public void mobileUserAgent() {
-        CUrl curl = new CUrl("http://httpbin.org/get")
-                .opt("-A", "Mozilla/5.0 (Linux; U; Android 8.0.0; zh-cn; KNT-AL10 Build/HUAWEIKNT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) MQQBrowser/7.3 Chrome/37.0.0.0 Mobile Safari/537.36");
+    public void customUserAgentAndHeaders() {
+        String mobileUserAgent = "Mozilla/5.0 (Linux; U; Android 8.0.0; zh-cn; KNT-AL10 Build/HUAWEIKNT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) MQQBrowser/7.3 Chrome/37.0.0.0 Mobile Safari/537.36";
+        Map<String, String> fakeAjaxHeaders = new HashMap<String, String>();
+        fakeAjaxHeaders.put("X-Requested-With", "XMLHttpRequest");
+        fakeAjaxHeaders.put("Referer", "http://somesite.com/fake_referer");
+        CUrl curl = curl("http://httpbin.org/get")
+                .opt("-A", mobileUserAgent) // simulate a mobile browser
+                .headers(fakeAjaxHeaders)   // simulate an AJAX request
+                .header("X-Auth-Token: xxxxxxx"); // other custom header, this might be calculated elsewhere
         curl.exec();
         assertEquals(200, curl.getHttpCode());
     }
@@ -100,10 +107,17 @@ public class CUrlTest {
     @SuppressWarnings("unchecked")
     @Test
     public void customResolver() {
-        CUrl curl = new CUrl("http://httpbin.org/get?a=b");
+        CUrl curl = curl("http://httpbin.org/json");
+        // execute request and convert response to JSON
         Map<String, Object> json = curl.exec(jsonResolver, null);
         assertEquals(200, curl.getHttpCode());
-        assertEquals("b", deepGet(json, "args.a"));
+        assertEquals("Yours Truly", deepGet(json, "slideshow.author"));
+        assertEquals("Why <em>WonderWidgets</em> are great", deepGet(json, "slideshow.slides.1.items.0"));
+        // execute request and convert response to HTML
+        curl = curl("http://httpbin.org/html");
+        Document html = curl.exec(htmlResolver, null);
+        assertEquals(200, curl.getHttpCode());
+        assertEquals("Herman Melville - Moby-Dick", html.select("h1:first-child").text());
     }
 
     @Test
@@ -114,8 +128,8 @@ public class CUrlTest {
             final int idx = i;
             new Thread() {
                 public void run() {
-                    CUrl curl = curls[idx] = new CUrl("http://httpbin.org/get")
-                            .cookie("value=" + idx);
+                    CUrl curl = curls[idx] = curl("http://httpbin.org/get")
+                            .cookie("thread" + idx + "=#" + idx);
                     curl.exec();
                     count.countDown();
                 }
@@ -123,17 +137,60 @@ public class CUrlTest {
         }
         try { count.await(); } catch (Exception ignored) {} // make sure all requests are done
         assertEquals(200, curls[0].getHttpCode());
-        assertEquals("value=0", deepGet(curls[0].getStdout(jsonResolver, null), "headers.Cookie"));
-        assertEquals("value=1", deepGet(curls[1].getStdout(jsonResolver, null), "headers.Cookie"));
-        assertEquals("value=2", deepGet(curls[2].getStdout(jsonResolver, null), "headers.Cookie"));
+        assertEquals("thread0=#0", deepGet(curls[0].getStdout(jsonResolver, null), "headers.Cookie"));
+        assertEquals("thread1=#1", deepGet(curls[1].getStdout(jsonResolver, null), "headers.Cookie"));
+        assertEquals("thread2=#2", deepGet(curls[2].getStdout(jsonResolver, null), "headers.Cookie"));
     }
 
+    @Test
+    public void reuseCookieAcrossThreads() {
+        final CUrl.IO cookieJar = new CUrl.MemIO();
+        final CountDownLatch lock = new CountDownLatch(1);
+        new Thread() {
+            public void run() {
+                CUrl curl = curl("http://httpbin.org/cookies/set/from/server") // server-side Set-Cookie response header
+                        .cookie("foo=bar; hello=world") // multiple cookies are seperated by "; "
+                        .cookieJar(cookieJar); // write cookies to an IO instance
+                curl.exec();
+                lock.countDown();
+            }
+        }.start();
+        try { lock.await(); } catch (Exception ignored) {} // make sure request is done
+        CUrl curl = curl("http://httpbin.org/cookies")
+                .cookie(cookieJar); // reuse cookies
+        curl.exec();
+        assertEquals(200, curl.getHttpCode());
+        assertEquals("bar", deepGet(curl.getStdout(jsonResolver, null), "cookies.foo"));
+        assertEquals("world", deepGet(curl.getStdout(jsonResolver, null), "cookies.hello"));
+        assertEquals("server", deepGet(curl.getStdout(jsonResolver, null), "cookies.from"));
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////
+
+    private CUrl curl(String url) {
+        CUrl curl = new CUrl(url);
+        if (ENABLE_FIDDLER_FOR_ALL_TEST) {
+            curl.proxy("127.0.0.1", 8888).insecure();
+        }
+        return curl;
+    }
+
+    /** Implement a custom resolver that convert raw response to JSON */
     private CUrl.Resolver<Map<String, Object>> jsonResolver = new CUrl.Resolver<Map<String, Object>>() {
         @SuppressWarnings("unchecked")
         @Override
         public Map<String, Object> resolve(int httpCode, byte[] responseBody) throws Throwable {
             String json = new String(responseBody, "UTF-8");
             return new ObjectMapper().readValue(json, Map.class);
+        }
+    };
+    /** Implement a custom resolver that convert raw response to Jsoup Document */
+    private CUrl.Resolver<Document> htmlResolver = new CUrl.Resolver<Document>() {
+        @SuppressWarnings("unchecked")
+        @Override
+        public Document resolve(int httpCode, byte[] responseBody) throws Throwable {
+            String html = new String(responseBody, "UTF-8");
+            return Jsoup.parse(html);
         }
     };
 

@@ -151,14 +151,21 @@ public final class CUrl {
 	public final CUrl location() {
 		return opt("-L");
 	}
-	
+
 	/**
 	 * Specify the proxy server
 	 */
 	public final CUrl proxy(String host, int port) {
 		return opt("-x", host + ":" + port);
 	}
-	
+
+	/**
+	 * Allow insecure server connections when using HTTPS
+	 */
+	public final CUrl insecure() {
+		return opt("-k");
+	}
+
 	/**
 	 * Specify retry related options, default values are 0
 	 * @param retry Retry times
@@ -202,7 +209,7 @@ public final class CUrl {
 	
 	/**
 	 * Add post data. The data among multiple calls will be joined with '&amp;'
-	 * @param data 如果data以'@'开头，则后面部分作为文件名，数据由该文件读入
+	 * @param data if data start with '@', then the following part will be treated as file path
 	 */
 	public final CUrl data(String data) {
 		return data(data, false);
@@ -246,7 +253,7 @@ public final class CUrl {
 	
 	/**
 	 * 发起post文件上传，添加一个表单项
-	 * Issue a file-upload post and add a form item
+	 * Issue a form based upload and add a form item
 	 * @param name 表单项名
 	 * @param content 如首字母为'@'或'&lt;'则从指定的文件读取数据进行上传。
 	 *  '@'和'&lt;'的区别在于，'@'的文件内容作为文件附件上传，'&lt;'的文件内容作为普通表单项
@@ -257,7 +264,7 @@ public final class CUrl {
 	
 	/**
 	 * 发起post文件上传，添加一个文件上传的表单项
-	 * Issue a file-upload post and add a file item
+	 * Issue a form based upload and add a file item
 	 * @param name 表单项名
 	 * @param input 上传的数据IO
 	 */
@@ -386,10 +393,15 @@ public final class CUrl {
 		return this;
 	}
 
-	public static CookieStore getCookieStore() {
+	public static java.net.CookieStore getCookieStore() {
 		return cookieStore;
 	}
 
+	/**
+	 * Save all cookies binding with current thread to the specified IO object.
+	 * The output format is compatible with CURL tool.
+	 * @param output
+	 */
 	public static void saveCookies(IO output) {
 		StringBuilder sb = new StringBuilder();
 		for (HttpCookie cookie: cookieStore.getCookies()) {
@@ -406,6 +418,10 @@ public final class CUrl {
 		writeOutput(output, Util.s2b(sb.toString(), null), false);
 	}
 
+	/**
+	 * Load cookies from the specified IO object to the cookie-store binding with current thread
+	 * @param input
+	 */
 	public static void loadCookies(IO input) {
 		String s = Util.b2s(readInput(input), null, null);
 		BufferedReader br = new BufferedReader(new StringReader(s));
@@ -424,17 +440,22 @@ public final class CUrl {
 	}
 
 	/**
-	 * 打印输出完整CUrl命令行以及IO映射表。
+	 * Get all options as CURL command-line
 	 */
 	public final String toString() {
 		StringBuilder sb = new StringBuilder("curl");
 		for (String s: options) {
 			sb.append(' ').append(ptnOptionName.matcher(s).matches() ? s : '"' + s + '"');
 		}
-		sb.append("\r\n> IOMap: ").append(iomap);
+		if (iomap.size() > 0) sb.append("\r\n> IOMap: ").append(iomap);
 		return sb.toString();
 	}
-	
+
+	/**
+	 * Get all options, filled after exec.
+	 * You can change one or more options and re-exec the same CUrl instance, for example, switch proxy server.
+	 * @return
+	 */
 	public final List<String> getOptions() {
 		return options;
 	}
@@ -442,19 +463,36 @@ public final class CUrl {
 	public final Map<String, String> getTags() {
 		return tags;
 	}
-	
+
+	/**
+	 * Get request headers, filled after exec.
+	 * @return
+	 */
 	public final Map<String, String> getHeaders() {
 		return headers;
 	}
-	
+
+	/**
+	 * Get headers of all responses including redirection(s) in one request.
+	 * In case --location is not specified (default), it's always exactly one element.
+	 * @return
+	 */
 	public final List<List<String[]>> getResponseHeaders() {
 		return responseHeaders;
 	}
-	
+
+	/**
+	 * Get total time-consuming including retrying in millisecond.
+	 * @return
+	 */
 	public final long getExecTime() {
 		return execTime;
 	}
-	
+
+	/**
+	 * Get HTTP status code of last response, i.e. 200, 302 etc.
+	 * @return
+	 */
 	public final int getHttpCode() {
 		return httpCode;
 	}
@@ -463,7 +501,12 @@ public final class CUrl {
 		try { return resolver.resolve(httpCode, rawStdout); } catch (Throwable ignored) {}
 		return fallback;
 	}
-	
+
+	/**
+	 * Get all destination URLs including redirection(s) in one request.
+	 * In case --location is not specified (default), it's always exactly one element.
+	 * @return
+	 */
 	public final List<URL> getLocations() {
 		return locations;
 	}
