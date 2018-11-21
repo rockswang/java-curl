@@ -10,6 +10,7 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.InflaterInputStream;
 
 /**
  * Note:
@@ -872,10 +873,11 @@ public final class CUrl {
 					is = con.getErrorStream();
 				}
 				if (is == null && lastEx != null) throw lastEx;
-				byte[] bb = Util.readStream(is, maxDownload, true);
-				if (maxDownload <= 0 && bb != null && bb.length > 3 && bb[0] == 31 && bb[1] == -117 && bb[2] == 8) { // gzip, deflate
-					is = new GZIPInputStream(new ByteArrayInputStream(bb));
-					bb = Util.readStream(is, false);
+				byte bb[] = Util.readStream(is, maxDownload, true), b0, b1;
+				if (maxDownload <= 0 && bb != null && bb.length > 2) {
+					if ((b0 = bb[0]) == 0x1F && bb[1] == (byte) 0x8B) is = new GZIPInputStream(new ByteArrayInputStream(bb)); // gzip
+					if (b0 == 0x78 && ((b1 = bb[1]) == 0x01 || b1 == 0x5E || b1 == (byte) 0x9C || b1 == (byte) 0xDA)) is = new InflaterInputStream(new ByteArrayInputStream(bb)); // deflate/zlib
+					if (is instanceof InflaterInputStream) bb = Util.readStream(is, false);
 				}
 				int idx = locations.size() - 1;
 				fillResponseHeaders(con, responseHeaders.get(idx));
