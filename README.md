@@ -8,10 +8,10 @@ CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行
 * 基于标准Java运行库的Http类实现，源码兼容级别为1.6，适用性广泛，可用于服务端、Android等Java环境
 * 代码精简紧凑，仅一个1000余行的Java源文件，无任何外部依赖，可不用Maven直接源码级重用
 * 完全兼容CUrl命令行工具的常用开关，可直接作为命令行工具替代之
-* 支持所有HTTP Method，支持多文件上传
+* 支持所有HTTP Method，支持多文件上传；支持简单HTTP认证
 * 通过ThreadLocal解决了标准Java中Cookie只能全局保存的问题，可每线程独立维护Cookie
 * 可将线程中保存的Cookies序列化保存，方便建立Cookies池
-* 支持HTTP认证，支持HTTPS，可启用/忽略证书安全
+* 支持HTTPS，支持自签名证书（JKS/BKS）；亦可忽略证书安全检查
 * 支持每连接代理，支持需认证的HTTP/HTTPS代理
 * 跳转行为可控制，可获取到每步跳转的应答头信息
 * 支持编程自定义应答解析器，结合Jackson/Gson/Jsoup等库即可解析JSON/HTML等格式的应答
@@ -162,7 +162,7 @@ CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行
 
 ##### 例7：作为命令行工具使用，请求内容参考例4
 ```shell
-java -jar java-curl-1.2.0.jar https://httpbin.org/get ^
+java -jar java-curl-1.2.2.jar https://httpbin.org/get ^
     -x 127.0.0.1:8888 -k ^
     -A "Mozilla/5.0 (Linux; U; Android 8.0.0; zh-cn; KNT-AL10 Build/HUAWEIKNT-AL10) AppleWebKit/537.36 (KHTML, like Gecko) MQQBrowser/7.3 Chrome/37.0.0.0 Mobile Safari/537.36" ^
     -H "Referer: http://somesite.com/fake_referer" ^
@@ -170,9 +170,22 @@ java -jar java-curl-1.2.0.jar https://httpbin.org/get ^
     -H "X-Auth-Token: xxxxxxx"
 ```
 
+##### 例8：使用自签名证书
+```shell
+# 网站证书和私钥转换成p12/pfx证书
+openssl pkcs12 -export -in cert.pem -inkey key.pem -name cert -out cert.p12
+# p12/pfx转成jks格式，并设定密码为123456
+keytool -importkeystore -srckeystore cert.p12 -srcstoretype pkcs12 -srcstorepass 123456 -destkeystore cert.jks -deststorepass 123456
+# jks格式转成bks格式，BKS证书适用于Android平台
+keytool -importkeystore -srckeystore cert.jks -srcstoretype JKS -srcstorepass 123456 -destkeystore cert.bks -deststoretype BKS -deststorepass 123456 -provider org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath "path/to/bcprov-jdk16-140.jar"
+# 命令行调用java-curl，必须指定JKS文件的密码
+java -jar java-curl-1.2.2.jar https://mysecuritysite.com -E cert.jks:123456
+```
+
 # 支持的参数
 | 参数名 | 快捷方法 | 说明 |
 | --- | --- | --- |
+| -E, --cert | cert | <certificate:password> 指定客户端证书文件和密码，仅支持JKS格式证书(Android上只支持BKS) |
 | --compressed | 无 | 请求以gzip压缩应答数据（但需服务器端支持）|
 | --connect-timeout| timeout |连接超时时间，单位秒，默认0，即永不超时|
 | -b, --cookie| cookie |从文件/IO对象/参数字符串中读取Cookie|

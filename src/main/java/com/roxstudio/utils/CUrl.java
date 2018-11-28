@@ -5,6 +5,7 @@ import java.io.*;
 import java.lang.reflect.*;
 import java.net.*;
 import java.net.Proxy;
+import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.*;
@@ -20,8 +21,8 @@ import java.util.zip.InflaterInputStream;
  */
 @SuppressWarnings({"rawtypes", "unchecked", "serial", "UnusedReturnValue", "WeakerAccess", "unused", "JavaDoc"})
 public final class CUrl {
-	
-	private static final String DEFAULT_USER_AGENT = "Java-CURL version 1.2.0 by Rocks Wang <rockswang@foxmail.com>";
+	private static final String VERSION = "1.2.2";
+	private static final String DEFAULT_USER_AGENT = "Java-CURL version " + VERSION + " by Rocks Wang(https://github.com/rockswang)";
 	private static final Pattern ptnOptionName = Pattern.compile("-{1,2}[a-zA-Z][a-zA-Z0-9\\-.]*");
 	private static final CookieStore cookieStore = new CookieStore();
 	private static HostnameVerifier insecureVerifier = null;
@@ -39,18 +40,13 @@ public final class CUrl {
 			insecureVerifier = new HostnameVerifier() {
 				public boolean verify(String hostname, SSLSession session) { return true; }
 			};
-			TrustManager[] trustAll = new TrustManager[] { new X509TrustManager() {
-				public X509Certificate[] getAcceptedIssuers() { return null; }
-				public void checkClientTrusted(X509Certificate[] arg0, String arg1) {}
-				public void checkServerTrusted(X509Certificate[] arg0, String arg1) {}
-			}};
-			SSLContext sc = SSLContext.getInstance("TLS");
-			sc.init(null, trustAll, new SecureRandom());
-			insecureFactory = sc.getSocketFactory();
+			insecureFactory = getSocketFactory(null, null);
 		} catch (Exception ignored) {}
 	}
-	
-	private static final Map<String, Integer> optMap = Util.mapPut(new HashMap<String, Integer>(),
+
+	private static final Map<String, Integer> optMap = Util.mapPut(new LinkedHashMap<String, Integer>(),
+			"-E", 32,
+			"--cert", 32, 					// <certificate[:password]> Client certificate file and password
 			"--compressed", 1, 				// Request compressed response (using deflate or gzip)
 			"--connect-timeout", 2, 		// SECONDS  Maximum time allowed for connection
 			"-b", 3, 
@@ -74,14 +70,14 @@ public final class CUrl {
 			"--header", 10, 				// LINE   Pass custom header LINE to server (H)
 			"-I", 11,
 			"--head", 11, 					// Show document info only
-			"--ignore-content-length", 12, // Ignore the HTTP Content-Length header
+//			"--ignore-content-length", 12, // Ignore the HTTP Content-Length header
 			"-k", 31,
 			"--insecure", 31,				// Allow insecure server connections when using SSL
 			"-L", 13,
 			"--location", 13, 				// Follow redirects (H)
 			"-m", 14,
 			"--max-time", 14, 				// SECONDS  Maximum time allowed for the transfer
-			"--no-keepalive", 15, 			// Disable keepalive use on the connection
+//			"--no-keepalive", 15, 			// Disable keepalive use on the connection
 			"-o", 16,
 			"--output", 16, 				// FILE   Write to FILE instead of stdout
 			"-x", 17,
@@ -344,6 +340,12 @@ public final class CUrl {
 		iomap.put(key = "IO#" + iomap.size(), output);
 		return opt("-D", key);
 	}
+
+	public final CUrl cert(IO certificate, String password) {
+		String key;
+		iomap.put(key = "IO#" + iomap.size(), certificate);
+		return opt("-E", key + ":" + password);
+	}
 	
 	/** 
 	 * 重定向标准错误输出到给定的文件
@@ -548,14 +550,15 @@ public final class CUrl {
 		httpCode = -1;
 		rawStdout = null;
 		Proxy proxy = Proxy.NO_PROXY;
-		String url = null, redirect = null, method = null, cookie = null, charset = "UTF-8";
+		String url = null, redirect = null, method = null, cookie = null, charset = "UTF-8", cert = null;
 		final MemIO stdout = new MemIO();
 		IO stderr = stdout, output = stdout, cookieJar = null, dumpHeader = null;
 		StringBuilder dataSb = new StringBuilder();
 		Map<String, Util.Ref<String>> form = new LinkedHashMap<String, Util.Ref<String>>();
 		float connectTimeout = 0, maxTime = 0, retryDelay = 0, retryMaxTime = 0;
 		int retry = 0, maxDownload = 0;
-		boolean location = false, ignoreContentLength = false, noKeepAlive = false, silent = false, mergeData = false, insecure = false;
+		boolean location = false, silent = false, mergeData = false, insecure = false;
+//		boolean ignoreContentLength = false, noKeepAlive = false;
 		Util.mapPut(headers, "Accept", "*/*", "User-Agent", DEFAULT_USER_AGENT);
 		iomap.put("-", stdout);
 		Throwable lastEx = null;
@@ -570,6 +573,9 @@ public final class CUrl {
 				opt = "--data-urlencode";
 			}
 			switch (Util.mapGet(optMap, opt, -1)) {
+			case 32: // --cert  <certificate[:password]> Client certificate file and password
+				cert = options.get(++i);
+				break;
 			case 1: // --compressed  Request compressed response (using deflate or gzip)
 				headers.put("Accept-Encoding", "gzip, deflate");
 				break;
@@ -659,18 +665,18 @@ public final class CUrl {
 			case 11: // --head  Show document info only
 				method = "HEAD";
 				break;
-			case 12: // --ignore-content-length  Ignore the HTTP Content-Length header
-				ignoreContentLength = true;
-				break;
+//			case 12: // --ignore-content-length  Ignore the HTTP Content-Length header
+//				ignoreContentLength = true;
+//				break;
 			case 13: // --location  Follow redirects (H)
 				location = true;
 				break;
 			case 14: // --max-time  SECONDS  Maximum time allowed for the transfer
 				maxTime = Float.parseFloat(options.get(++i)); 
 				break;
-			case 15: // --no-keepalive  Disable keepalive use on the connection
-				noKeepAlive = true;
-				break;
+//			case 15: // --no-keepalive  Disable keepalive use on the connection
+//				noKeepAlive = true;
+//				break;
 			case 16: // --output  FILE   Write to FILE instead of stdout
 				output = getIO(options.get(++i)); 
 				break;
@@ -753,7 +759,7 @@ public final class CUrl {
 			if (method == null) method = "POST";
 		}
 		if (method == null) method = "GET";
-		if (!noKeepAlive) headers.put("Connection", "keep-alive");
+//		if (!noKeepAlive) headers.put("Connection", "keep-alive");
 		if (cookie != null) { // --cookie '' will clear the CookieStore
 			cookieStore.removeAll();
 			if (cookie.indexOf('=') > 0) {
@@ -789,9 +795,14 @@ public final class CUrl {
 				con.setConnectTimeout((int) (connectTimeout * 1000f));
 				con.setReadTimeout((int) (maxTime * 1000f));
 				con.setInstanceFollowRedirects(false);
-				if (insecure && con instanceof HttpsURLConnection) {
-					((HttpsURLConnection) con).setHostnameVerifier(insecureVerifier);
-					((HttpsURLConnection) con).setSSLSocketFactory(insecureFactory);
+				if (con instanceof HttpsURLConnection) {
+					if (insecure) {
+						((HttpsURLConnection) con).setHostnameVerifier(insecureVerifier);
+						((HttpsURLConnection) con).setSSLSocketFactory(insecureFactory);
+					} else {
+						int idx = cert.lastIndexOf(':');
+						((HttpsURLConnection) con).setSSLSocketFactory(getSocketFactory(getIO(cert.substring(0, idx)), cert.substring(idx + 1)));
+					}
 				}
 				for (Map.Entry<String, String> h: headers.entrySet()) con.setRequestProperty(h.getKey(), h.getValue());
 				if ("POST".equals(method)) {
@@ -842,9 +853,8 @@ public final class CUrl {
 						data = os.toByteArray();
 					} else {
 						data = Util.s2b(dataStr, null); // UTF-8
-						if (!ignoreContentLength) {
-							con.setRequestProperty("Content-Length", Integer.toString(data.length));
-						}
+//						if (!ignoreContentLength) {
+						con.setRequestProperty("Content-Length", Integer.toString(data.length));
 						if (!headers.containsKey("Content-Type")) {
 							con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 						}
@@ -999,6 +1009,27 @@ public final class CUrl {
 		if (RECOVERABLES.contains(errCls)) return true;
 		for (Class re: RECOVERABLES) if (re.isAssignableFrom(errCls)) return true;
 		return false;
+	}
+
+	private static SSLSocketFactory getSocketFactory(IO cert, String password) throws Exception {
+		TrustManager[] managers;
+		if (cert == null) {
+			managers = new TrustManager[] { new X509TrustManager() {
+				public X509Certificate[] getAcceptedIssuers() { return null; }
+				public void checkClientTrusted(X509Certificate[] arg0, String arg1) {}
+				public void checkServerTrusted(X509Certificate[] arg0, String arg1) {}
+			}};
+		} else {
+			KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType()); // JKS for java, BKS for android
+			keyStore.load(cert.getInputStream(), password.toCharArray());
+			cert.close();
+			TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+			factory.init(keyStore);
+			managers = factory.getTrustManagers();
+		}
+		SSLContext sc = SSLContext.getInstance("TLS");
+		sc.init(null, managers, new SecureRandom());
+		return sc.getSocketFactory();
 	}
 
 	///////////////////////////// Inner Classes & static instances ///////////////////////////////////////

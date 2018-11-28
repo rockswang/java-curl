@@ -165,6 +165,14 @@ public class CUrlTest {
         assertEquals("server", deepGet(curl.getStdout(jsonResolver, null), "cookies.from"));
     }
 
+    @Test
+    public void selfSignedCertificate() {
+        CUrl curl = new CUrl("https://www.baidu.com/")
+                .cert(new CUrl.FileIO("D:/tmp/test_jks.jks"), "123456")
+                .proxy("127.0.0.1", 8888);
+        System.out.println(curl.exec(CUrl.UTF8, null));
+    }
+
     ///////////////////////////////////////////////////////////////////////////////
 
     private CUrl curl(String url) {
