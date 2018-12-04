@@ -22,7 +22,7 @@ java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in 
 # Description
 
 #### About switches and shortcuts
-* All switches can be passed in via CUrl.opt(...) method. For a list of supported parameters, please refer to table [#supported-switches].
+* All switches can be passed in via CUrl.opt(...) method. For a list of supported parameters, please refer to the [table](#supported-switches).
 * Some frequently used switches provide a short-cut method, please refer to the table and source code.
 * The opt method accepts multiple parameters and values. Note that if a CUrl switch needs to provide a value, switch and value should be passed in as two method parameters, e.g.:
   * ```curl.opt("-d", "a=b", "-L")```
@@ -63,7 +63,7 @@ java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in 
 
 #### About HTTPS
 * For sites with valid certificates issued by legal certification authorities, direct access is available.
-* You can specify a self-signed certificate (since 1.2.2) using cert(io, password) or opt("-E", "path/to/file:password")
+* You can specify a self-signed certificate (since 1.2.2) using cert(io, password) or opt("-E", "path/to/file\:password")
 * You can also use insecure() or opt("-k") to instruct CUrl to ignore certificate security checks.
 * Currently CA certificates is not supported. If you are using a traffic capture tool to intercept HTTPS requests, please ignore the certificate security check
 * You can use openssl, keytool to convert between PEM/P12/JKS/BKS certificates file format, see Example 8
