@@ -1,79 +1,81 @@
 [![Licence](https://img.shields.io/badge/licence-Apache%20Licence%20%282.0%29-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.rockswang/java-curl.svg)](https://mvnrepository.com/artifact/com.github.rockswang/java-curl)
 
-# 简介
-CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行库中的HttpURLConnection实现的Http工具类。
+[中文](README_zh.md)
 
-# 特点
-* 基于标准Java运行库的Http类实现，源码兼容级别为1.6，适用性广泛，可用于服务端、Android等Java环境
-* 代码精简紧凑，仅一个1000余行的Java源文件，无任何外部依赖，可不用Maven直接源码级重用
-* 完全兼容CUrl命令行工具的常用开关，可直接作为命令行工具替代之
-* 支持所有HTTP Method，支持多文件上传；支持简单HTTP认证
-* 通过ThreadLocal解决了标准Java中Cookie只能全局保存的问题，可每线程独立维护Cookie
-* 可将线程中保存的Cookies序列化保存，方便建立Cookies池
-* 支持HTTPS，支持自签名证书（JKS/BKS）；亦可忽略证书安全检查
-* 支持每连接代理，支持需认证的HTTP/HTTPS代理
-* 跳转行为可控制，可获取到每步跳转的应答头信息
-* 支持编程自定义应答解析器，结合Jackson/Gson/Jsoup等库即可解析JSON/HTML等格式的应答
-* 支持失败重试，可编程自定义可重试异常
+# Introduction
+java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in the standard Java runtime, while the usage references to the commonly-used CURL command line tool under Linux.
 
-# 说明
+# Features
+* Based on the standard Java build-in Http class, the source compatibility level is 1.6, can be used for server, Android and other Java environments
+* The code is super compact, only one java file with less than 2000 lines, without any external dependencies, can be easily reused at source level
+* Fully compatible with the common switches of the CUrl command line tool, can be directly used as a command line tool
+* Support all HTTP methods, support multi-part files uploads; support simple HTTP authentication
+* Use ThreadLocal to solve the problem that cookies can only be stored globally in standard Java, and can maintain cookies isolated for each thread.
+* The cookie-store in the thread can be serialized and saved, which is convenient for setting up a cookie pool.
+* Support HTTPS, support self-signed certificate (JKS/BKS); can also ignore certificate security check
+* Support per-connection proxy, support HTTP/HTTPS proxy authentication
+* The redirect behavior can be controlled, and the response headers of each redirect-step can be obtained.
+* Support programming custom response resolver, combined with Jackson/Gson/Jsoup and other libraries to directly convert raw responses into JSON/HTML format
+* Support failed retry, programmable custom retry-able exception
 
-#### 关于参数和快捷方法
-* 所有参数均可以通过CUrl.opt(...)方法传入，具体支持的参数列表请参见文末表格
-* 部分常用参数提供了快捷方法，具体请见文末表格和源码
-* opt方法接受多个参数和值。注意，如果一个CUrl参数需要提供值，那么应该分成两个方法参数传入，比如：
-  * ```curl.opt("-d", "a=b", "-L")```
-  * 上面例子中提供了两个命令行参数，即post数据"a=b"，以及自动跟随重定向
+# Description
 
-#### 关于CUrl.IO及其子类
-* Linux中的CURL是个命令行工具，只能读取、输出物理文件，但作为编程库的java-curl，支持以字节数组或输入输出流对象作为读取和写入的目标
-* CUrl.IO即抽象出来的输入输出接口，其子类包括：
-  * CUrl.MemIO：对应于ByteArrayInputStream/ByteArrayOutputStream，用于直接内存读取或写入
-  * CUrl.FileIO: 对应物理文件
-  * CUrl.WrappedIO: 流对象的简单包装，要么只能作为输入，要么只能作为输出
-* CUrl的多个方法都可以使用IO作为参数，包括：
-  * cert(io, password): 从IO读取客户端证书
-  * data(io, binary): 从IO中读取POST数据
-  * form(name, io): 从IO中读取，添加一个文件上传表单项
-  * cookie(io): 从IO中读取Cookies
-  * cookieJar(io): 把Cookies保存到IO
-  * dumpHeader(io): 将应答头倾印到IO
-  * stdout/stderr: 重定向标准输出/标准错误输出到IO
-* 注意，所有输出类参数，均可以用"-"代表stdout，比如
-  * ```curl("http://...").opt("-D", "-", "-c", "-")```
-  * 上例发起请求并把应答头、网站Cookie均输出到stdout
+#### About switches and shortcuts
+* All switches can be passed in via CUrl.opt(...) method. For a list of supported parameters, please refer to table [#supported-switches].
+* Some frequently used switches provide a short-cut method, please refer to the table and source code.
+* The opt method accepts multiple parameters and values. Note that if a CUrl switch needs to provide a value, switch and value should be passed in as two method parameters, e.g.:
+  * ```curl.opt("-d", "a=b", "-L")```
+  * The above example provides two command line switches, namely post data "a=b" and automatic follow redirect
 
-#### 关于Cookies
-* 基于标准Java处理cookies有两种方案，一种是自行处理Cookie请求头和Set-Cookie应答头，Jsoup即使用此方案，但有一些问题，包括：
-  * Set-Cookie中除了键值对外，还有domain, path, expire, httpOnly等属性，有可能出现同名的Cookie，Jsoup用Map简单处理，有时会有问题
-  * 据实际测试，部分版本JRE有丢失Set-Cookie值的BUG
-* 第二种方案即使用Java自己的CookieManager/CookieStore，但有一个严重问题，此处API设计不合理，CookieStore只能有一个全局默认实例，也就是说，如果多个请求访问同一个站点，那么它们是共用同一份Cookie的！
-* CUrl类实现了一个基于ThreadLocal的CookieStore，每条线程有独立的cookie，完美解决了上述问题
-* 除了--cookie/--cookie-jar参数外，还可以使用getCookieStore获取到CookieStore单例，直接调用其add/getCookies等方法读写当前线程的cookies
-* 注意1：本类为了方便使用，和CURL工具略有区别，同一线程的多次请求不会自动清除cookie存储。因此，对同一网站的不同url，不必每次添加cookie/cookie-jar参数
-* 注意2：如果使用线程池，由于池中线程会被重用，为了避免Cookie污染，请在线程中第一次请求上添加cookie("")调用，这会清除本线程cookie存储
+#### About CUrl.IO and its subclasses
+* CURL in Linux is a command line tool that can only read and write physical files, while java-curl as a programming library, support ByteArray or InputStream/OutputStream objects for reading and writing.
+* CUrl.IO is the abstract interface for both input and output, its subclasses include:
+  * CUrl.MemIO: corresponds to ByteArrayInputStream/ByteArrayOutputStream for direct memory access
+  * CUrl.FileIO: corresponding to physical file 
+  * CUrl.WrappedIO: Simple wrapper for InputStream or OutputStream, either as input or as output only
+* Multiple methods of CUrl can use IO as a parameter, including:
+  * cert(io, password): Read the client certificate from IO
+  * data(io, binary): read POST data from IO
+  * form(name, io): Read from IO, add as form item for file uploading
+  * cookie(io): read cookies from IO
+  * cookieJar(io): Save cookies to IO
+  * dumpHeader(io): dumps the response header to IO
+  * stdout/stderr: redirect standard output/standard error output to IO
+* Note for that all output IO parameters, "-" can be used to represent stdout, e.g.:
+  * ```curl("http://...").opt("-D", "-", "-c", "-")```
+  * The above example initiates a request and outputs both the response header and website cookies to stdout
 
-#### 关于CUrl.Resolver及其子类
-* CUrl.Resolver用于直接将原始应答字节数组反序列化为自定义Java对象，比如Xml, Json, Html等，可以结合JDOM, Jackson/Gson, Jsoup等第三方库使用
-* 在Resolver.resolve的实现方法中，如果抛出Recoverable或其子类实例，则表示此错误可重试，如果指定了重试参数，则CUrl会自动重试给定次数或给定时间
-  * 举例：服务端API返回200的正常应答，但业务级错误为“请稍候重试”，此时即使请求本身是成功的，仍然可以抛出一个Recoverable异常指示CUrl重试
+#### About Cookies
+* There are two ways for handling cookies in standard Java. The first is to handle the Cookie request header and the Set-Cookie response header by itself. Jsoup uses this approach, but there are some problems, including:
+  * In addition to the key-value pairs, Set-Cookie contains domain, path, expire, httpOnly and other attributes, it's possible that multiple cookies with the same name, Jsoup use Map to store cookies, sometimes it leads to problems
+  * According to some real-world tests, some versions of the JRE have a bug that loses the Set-Cookie value.
+* The second way is to use Java's own CookieManager/CookieStore, but there is a serious problem, the API design here is not reasonable, CookieStore can only have one global default instance, that is, if multiple requests access the same site concurrently, then They share the same cookie!
+* CUrl class implements a ThreadLocal-based CookieStore, each thread has a separate cookie-store, which perfectly solves the above problem.
+* In addition to the --cookie/--cookie-jar parameter, you can also use getCookieStore to get the CookieStore singleton, directly call its add/getCookies and other methods to read and write the current thread's cookies.
+* Note 1: This class is slightly different from the CURL tool for convenience of use. Multiple requests from the same thread do not automatically clear the cookie store. Therefore, for different urls on the same website, you don't have to add the cookie/cookie-jar parameter every time.
+* Note 2: If you use a thread pool, because the threads in the pool will be reused, in order to avoid cookie pollution, please add a cookie("") call on the first request in the thread, which will clear the thread-local cookie-store.
 
-#### 关于HTTPS
-* 对于有合法认证机构签发的有效证书的站点，可以直接访问
-* 可以使用cert(io, password)或opt("-E", "path/to/file:password")指定自签名证书 (since 1.2.2)
-* 也可使用insecure()/opt("-k")指示CUrl忽略证书安全检查
-* 不支持指定CA证书，如使用抓包工具拦截HTTPS请求，请忽略证书安全检查
-* 可以用openssl, keytool在PEM/P12/JKS/BKS等格式证书间相互转换，请参见例8
+#### About CUrl.Resolver and its subclasses
+* CUrl.Resolver is used to directly deserialize the raw response byte array into custom Java object, such as Xml, Json, Html, etc., can be combined with JDOM, Jackson/Gson, Jsoup and other third-party libraries.
+* In the implementation of Resolver.resolve() method, if Recoverable or its subclass instances are thrown, this fail can be retried. If retry parameters are specified, CUrl will automatically retry the given number of times or given time.
+  * Example: Even though the server API returns a response of status 200, but the business level error is "Please try again later". At this time, even if the request itself is successful, you can still throw a Recoverable exception to instruct CUrl to retry.
 
-#### 关于重定向
-* 默认不自动跟随重定向，请使用location()/opt("-L")指示自动跟随重定向
-* 跟CURL工具一样，只支持30X重定向，不支持refresh头部，页面meta等重定向方式
-* 如果不跟随重定向，可以在获取到30X应答后，使用CUrl.getLocations().get(0)获取到重定向的目标URL
+#### About HTTPS
+* For sites with valid certificates issued by legal certification authorities, direct access is available.
+* You can specify a self-signed certificate (since 1.2.2) using cert(io, password) or opt("-E", "path/to/file:password")
+* You can also use insecure() or opt("-k") to instruct CUrl to ignore certificate security checks.
+* Currently CA certificates is not supported. If you are using a traffic capture tool to intercept HTTPS requests, please ignore the certificate security check
+* You can use openssl, keytool to convert between PEM/P12/JKS/BKS certificates file format, see Example 8
 
-# 例子
+#### About redirects
+* By default, the redirect is not automatically followed. Please use location() or opt("-L") to indicate that the redirect is automatically followed.
+* Like the CURL tool, only supports 30X redirects, does not support refresh headers, page metas, etc.
+* If you do not follow the redirect, you can use CUrl.getLocations().get(0) to get the redirected location URL after getting the 30X response.
 
-##### 例1：POST表单提交。两次data调用演示可多次指定--data命令行参数，且参数值可覆盖
+# Examples
+
+##### Example 1：POST form submission. Two data() call demonstrations that --data switch can be specified multiple times, and the parameter value can be overwritten.
 ```java
     public void httpPost() {
         CUrl curl = new CUrl("http://httpbin.org/post")
@@ -84,7 +86,7 @@ CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行
     }
 ```
 
-##### 例2：通过Fiddler代理（抓包工具）访问HTTPS站点
+##### Example 2: Accessing an HTTPS Site via Fiddler Proxy (Traffic Capture Tool)
 ```java
     public void insecureHttpsViaFiddler() {
         CUrl curl = new CUrl("https://httpbin.org/get")
@@ -95,7 +97,7 @@ CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行
     }
 ```
 
-##### 例3：上传多个文件，一个内存文件，一个物理文件
+##### Example 3: Upload multiple files, one memory file, one physical file
 ```java
     public void uploadMultipleFiles() {
         CUrl.MemIO inMemFile = new CUrl.MemIO();
@@ -109,7 +111,7 @@ CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行
     }
 ```
 
-##### 例4：模拟手机浏览器上的AJAX请求，添加自定义请求头。可用header指定单一请求头，也可用headers一次指定多个请求头
+##### Example 4: Simulate an AJAX request from a mobile browser and add a custom request header. Specify single request header with header(), or specify multiple request headers at a time with headers().
 ```java
     public void customUserAgentAndHeaders() {
         String mobileUserAgent = "Mozilla/5.0 (Linux; U; Android 8.0.0; zh-cn; KNT-AL10 Build/HUAWEIKNT-AL10) " 
@@ -126,7 +128,7 @@ CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行
     }
 ```
 
-##### 例5：多线程并发请求，线程间Cookies相互独立
+##### Example 5: Multi-threaded concurrent requests, inter-threaded cookies are isolated between each other
 ```java
     public void threadSafeCookies() {
         final CountDownLatch count = new CountDownLatch(3);
@@ -150,7 +152,7 @@ CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行
     }
 ```
 
-##### 例6：编程自定义应答解析器，使用JSoup解析HTML
+##### Example 6: Programming a custom response parser, parsing HTML using JSoup
 ```java
     private CUrl.Resolver<Document> htmlResolver = new CUrl.Resolver<Document>() {
         @SuppressWarnings("unchecked")
@@ -169,7 +171,7 @@ CUrl类是以Linux下常用命令行工具CUrl为参考，基于标准Java运行
     }
 ```
 
-##### 例7：作为命令行工具使用，请求内容参考例4
+##### Example 7: Used as a command line tool
 ```shell
 java -jar java-curl-1.2.2.jar https://httpbin.org/get ^
     -x 127.0.0.1:8888 -k ^
@@ -179,51 +181,51 @@ java -jar java-curl-1.2.2.jar https://httpbin.org/get ^
     -H "X-Auth-Token: xxxxxxx"
 ```
 
-##### 例8：使用自签名证书。java平台用JKS格式证书，android平台需使用BKS格式证书
+##### Example 8: Using a self-signed certificate. Uses JKS in Java, use BKS in Android
 ```shell
-# 网站证书和私钥转换成p12/pfx证书
+# Convert website certificate and private key to p12/pfx certificate
 openssl pkcs12 -export -in cert.pem -inkey key.pem -name cert -out cert.p12
-# p12/pfx转成jks格式，并设定密码为123456
+# Convert p12/pfx to jks format and set the password to 123456
 keytool -importkeystore -srckeystore cert.p12 -srcstoretype pkcs12 -srcstorepass 123456 -destkeystore cert.jks -deststorepass 123456
-# jks格式转成bks格式，BKS证书适用于Android平台
+# Convert Jks format to bks format, BKS certificate is applicable to Android platform
 keytool -importkeystore -srckeystore cert.jks -srcstoretype JKS -srcstorepass 123456 -destkeystore cert.bks -deststoretype BKS -deststorepass 123456 -provider org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath "path/to/bcprov-jdk16-140.jar"
-# 命令行调用java-curl，必须指定JKS文件的密码
+# Call java-curl on the command line, you must specify the password of the JKS file.
 java -jar java-curl-1.2.2.jar https://mysecuritysite.com -E cert.jks:123456
 ```
 
-# 支持的参数
-| 参数名 			| 快捷方法				| 说明 |
+# Supported Switches
+| Switch Name		| Short-cut Method		| Description |
 | --- 				| ---					| --- |
-| -E, --cert		| cert					| &lt;certificate:password&gt; 指定客户端证书文件和密码，仅支持JKS格式证书(Android上只支持BKS) |
-| --compressed		| 无						| 请求以gzip压缩应答数据（但需服务器端支持） |
-| --connect-timeout	| timeout				| 连接超时时间，单位秒，默认0，即永不超时 |
-| -b, --cookie		| cookie				| 从文件/IO对象/参数字符串中读取Cookie |
-| -c, --cookie-jar	| cookieJar				| Cookie输出到文件/IO对象 |
-| -d, --data, --data-ascii | data			| 添加post数据，如果多次使用，则使用'&'连接，后添加的表单项键值对会覆盖之前的<br/>如果data以'@'开头，则后面部分作为文件名，数据由该文件读入，且删除文件中的回车换行 |
-| --data-raw		| 无						| 同"--data"，但不对'@'特殊处理 |
-| --data-binary		| 无						| 同"--data"，但读入文件时不删除回车换行字符 |
-| --data-urlencode	| data(data,charset)	| 同"--data"，但对数据进行Url-Encode，可以在此选项后面附加字符集，比如"--data-urlencode-GBK"<br/>如果参数值首字符为'='：对'='后面的字符串整体进行Url-Encode* 如果参数值中包含'='：将字符串拆分为以'&'分割的键值对，键值对用'='分割，对键值对中所有的值进行Url-Encode<br/>如果参数值中不包含'='：<br/>--如果字符串中不包含'@'，则对字符串整体进行Url-Encode<br/>--如果字符串中包含'@'则以'@'分割字符串，'@'后面为输入文件名，则从该文件中读取文本并进行Url-Encode，'@'前面部分为键<br/>--如'@'为第一个字符，则文件中读出的文本整体进行Url-Encode |
-| -D, --dump-header	| dumpHeader			| 输出最后一步跳转的应答头到给定的文件/IO对象 |
-| -F, --form		| form					| 发起文件上传，添加一个文件或表单项<br/>-如参数值首字母为'@'或'<'则从指定的文件读取数据进行上传。'@'和'<'的区别在于，'@'的文件内容作为文件附件上传，'<'的文件内容作为普通表单项的值<br/>-否则参数值作为普通表单项的值 |
-| --form-string		| form(formString)		| 发起文件上传，添加1个非文件表单项，注意此方法不对'@'进行特殊处理 |
-| -G, --get			| 无						| 强制使用GET方法。会把-d指定的键值对添加到url后作为查询参数 |
-| -H, --header		| header				| 添加一个请求头行，语法为：<br/>-"Host: baidu.com": 添加/设定一行普通请求头键值对<br/>-"Accept:": 删除给定请求头<br/>-"X-Custom-Header;": 添加/设定一个值为空的自定义请求头 |
-| -I, --head		| 无						| 使用HEAD方法请求 |
-| -k, --insecure	| insecure				| 忽略HTTPS证书安全检查 |
-| -L, --location	| location				| 自动跟随跳转（默认不开启） |
-| -m, --max-time	| timeout				| 传输超时时间，单位秒，默认0，即永不超时 |
-| -o, --output		| output				| 指定输出文件/IO对象，默认stdout，即"-" |
-| -x, --proxy		| proxy					| 设定代理服务器 |
-| -U, --proxy-user	| 无						| 设定代理服务器登录信息 |
-| -e, --referer		| 无						| 设定Referer请求头内容 |
-| --retry			| retry					| 设定重试次数，默认0 |
-| --retry-delay		| retry					| 设定两次重试之间的延迟，单位秒，默认0 |
-| --retry-max-time	| retry					| 设定最长重试总时间，单位秒，默认0，即永不超时 |
-| -s, --silent		| 无						| 设定静默模式，即屏蔽所有输出 |
-| --stderr			| stderr				| 设定stderr的输出文件/IO对象，默认stdout |
-| -u, --user		| 无						| 设定服务器登录信息。注意只用于简单HTTP认证，即浏览器中弹出系统对话框的情况 |
-| --url				| CUrl, url				| 设定请求地址，本CUrl库不支持多url请求 |
-| -A, --user-agent	| 无						| 设定"User-Agent"请求头内容 |
-| -X, --request		| 无						| 指定HTTP请求方法 |
-| --x-max-download	| 无						| 传输达到给定字节数（非精确）后放弃下载 |
-| --x-tags			| 无						| 设定额外的键值对信息，存储在当前CUrl实例中，用于在编程中传递额外参数 |
+| -E, --cert		| cert					| &lt;certificate:password&gt; Specify the client certificate file and password, only support JKS format certificate (only BKS is supported on Android) |
+| --compressed		| NO					| Request to gzip compressed response data (but need server side support) |
+| --connect-timeout	| timeout				| Connection timeout time, in seconds, default 0, that is, never timeout |
+| -b, --cookie		| cookie				| Read cookies from file / IO object / parameter string |
+| -c, --cookie-jar	| cookieJar				| Cookie output to file / IO object |
+| -d, --data, --data-ascii | data			| Add post data, if used multiple times, use '&' to connect, the added form item key-value pair will overwrite the previous one. <br/>If data starts with '@', the latter part is used as the file name, and the data is used by File read in, and delete carriage return in the file |
+| --data-raw		| NO					| Same as "--data", but not special handling for '@' |
+| --data-binary		| NO					| Same as "--data", but does not delete carriage return line feed characters when reading in files |
+| --data-urlencode	| data(data,charset)	| Same as "--data", but with Url-Encode for data, you can append a character set after this option, such as "--data-urlencode-GBK".<br/>If the first character of the parameter value is '=': the following string is whole Url-Encode;<br/> If the parameter value contains '=': split the string into key-value pairs separated by '&', the key-value pairs are split with '=', for key-value pairs All values in the value are Url-Encode.<br/>If the parameter value does not contain '=': <br/>-- If the string does not contain '@', then the entire string is Url-Encode<br/>-- If the string contains '@' then split the string with '@', after '@' is the input file name, then read the text from the file and perform Url-Encode, the front part of '@' is the key <br/>-- If '@' is the first character, the text read in the file is generally Url-Encode |
+| -D, --dump-header	| dumpHeader			| Output the response header of the last step jump to the given file / IO object |
+| -F, --form		| form					| Initiate file upload, add a file or form item. <br/>- If the initial value of the parameter value is '@' or '<', the data is read from the specified file for uploading. The difference between '@' and '<' is that the file content of '@' is uploaded as a file attachment, and the file content of '<' is used as the value of the normal form item. <br/>- Otherwise, the parameter value is used as the value of the normal form item. |
+| --form-string		| form(formString)		| Initiate file upload, add 1 non-file form item, note that this method does not specialize for '@' |
+| -G, --get			| NO					| Force the GET method. Will add the key-value pair specified by -d to the url as the query parameter |
+| -H, --header		| header				| Add a request header line with the syntax:<br/>-- "Host: baidu.com": Add/set a normal request header key-value pair<br/>-- "Accept:": Delete the given request header <br/>-- "X-Custom-Header;": Add/set a custom request header with a value of null |
+| -I, --head		| NO					| Request using the HEAD method |
+| -k, --insecure	| insecure				| Ignore HTTPS certificate security check |
+| -L, --location	| location				| Automatic follow redirect (not enabled by default) |
+| -m, --max-time	| timeout				| Transmission timeout, in seconds, default 0, that is, never timeout |
+| -o, --output		| output				| Specify the output file / IO object, the default stdout, which is "-" |
+| -x, --proxy		| proxy					| Set proxy server |
+| -U, --proxy-user	| NO					| Set proxy server authorization |
+| -e, --referer		| NO					| Set the Referer request header content |
+| --retry			| retry					| Set the number of retries, default 0 |
+| --retry-delay		| retry					| Set the delay between two retries, in seconds, default 0 |
+| --retry-max-time	| retry					| Set the maximum retry total time, in seconds, default 0, that is, never time out |
+| -s, --silent		| NO					| Set silent mode, which suppress all outputs |
+| --stderr			| stderr				| Set stderr output file / IO object, default stdout |
+| -u, --user		| NO					| Set the HTTP Authorization information. Note that it is only used for simple HTTP authentication, which is the case where the system dialog box pops up in the browser. |
+| --url				| CUrl, url				| Set the request address, this CUrl library does not support multiple url requests. |
+| -A, --user-agent	| NO					| Set the "User-Agent" request header content |
+| -X, --request		| NO					| Specify HTTP request method |
+| --x-max-download	| NO					| Abandon download after the transfer reaches a given number of bytes (inaccurate) |
+| --x-tags			| NO					| Set additional key-value pairs to be stored in the current CUrl instance for passing additional parameters in programming |
