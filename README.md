@@ -24,31 +24,31 @@ java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in 
 #### About switches and shortcuts
 * All switches can be passed in via CUrl.opt(...) method. For a list of supported parameters, please refer to the [table](#supported-switches).
 * Some frequently used switches provide short-cut methods, please refer to the [table](#supported-switches) and source code.
-* The *opt* method accepts multiple parameters and values. Note that if a CUrl switch needing a value, then the switch and value should be passed-in as two method parameters, e.g.:
-  - ```curl.opt("-d", "a=b", "-L")``` 
+* The *opt* method accepts multiple parameters and values. Note that if a CUrl switch needing a value, then the switch and value should be passed-in as two method parameters, e.g.:<br/>
+  - ```curl.opt("-d", "a=b", "-L")```<br/> 
   - The above example gives two command line switches, namely post data "a=b" and following redirect automatically.
 
 #### About CUrl.IO and its subclasses
 * CURL in Linux is a command line tool that is designed to read and write physical files, while java-curl as a programming library, support ByteArray or InputStream/OutputStream objects for reading and writing.
-* ```CUrl.IO``` is the abstracted interface for both input and output, its subclasses include:
-    * CUrl.MemIO: corresponds to a byte buffer for direct memory access
-    - CUrl.FileIO: corresponding to physical file
-    - ```CUrl.WrappedIO```: Simple wrapper for either InputStream or OutputStream.
-* Multiple methods can use IO as a parameter, including:
-  - ```cert(io, password)```: Read the client certificate from IO
-  - ```data(io, binary)```: read POST data from IO
-  - ```form(name, io)```: Read file/text item from IO to submit an multi-part post for file-uploading
-  - ```cookie(io)```: Read cookies from IO
-  - ```cookieJar(io)```: Save cookies to IO
-  - ```dumpHeader(io)```: dumps the response header to IO
-  - ```stdout/stderr```: redirect standard-output/standard-error to IO.
-* Following the CURL manual, "-" can be used to represent stdout, e.g.:
-  - ```curl("http://...").opt("-D", "-", "-c", "-")```
+* ```CUrl.IO``` is the abstracted interface for both input and output, its subclasses include:<br/>
+  - ```CUrl.MemIO```: corresponds to a byte buffer for direct memory access<br/>
+  - ```CUrl.FileIO```: corresponding to physical file<br/>
+  - ```CUrl.WrappedIO```: Simple wrapper for either InputStream or OutputStream<br/>
+* Multiple methods can use IO as a parameter, including:<br/>
+  - ```cert(io, password)```: Read the client certificate from IO<br/>
+  - ```data(io, binary)```: read POST data from IO<br/>
+  - ```form(name, io)```: Read file/text item from IO to submit an multi-part post for file-uploading<br/>
+  - ```cookie(io)```: Read cookies from IO<br/>
+  - ```cookieJar(io)```: Save cookies to IO<br/>
+  - ```dumpHeader(io)```: dumps the response header to IO<br/>
+  - ```stdout/stderr```: redirect standard-output/standard-error to IO.<br/>
+* Following the CURL manual, "-" can be used to represent stdout, e.g.:<br/>
+  - ```curl("http://...").opt("-D", "-", "-c", "-")```<br/>
   - The above example initiates a request and outputs both the response header and website cookies to stdout.
 
 #### About Cookies
-* There are two ways for handling cookies in standard Java. The first is to handle the *Cookie* request header and the *Set-Cookie* response header from the low level. Jsoup uses this approach, but there are some problems, including:
-  - In addition to the key-value pairs, *Set-Cookie* contains domain, path, expire, httpOnly and other attributes, it's possible that multiple cookies with the same name, Jsoup use Map to store cookies, sometimes it leads to problems
+* There are two ways for handling cookies in standard Java. The first is to handle the *Cookie* request header and the *Set-Cookie* response header from the low level. Jsoup uses this approach, but there are some problems, including:<br/>
+  - In addition to the key-value pairs, *Set-Cookie* contains domain, path, expire, httpOnly and other attributes, it's possible that multiple cookies with the same name, Jsoup use Map to store cookies, sometimes it leads to problems<br/>
   - According to some real-world tests, some versions of the JRE have a bug that loses the *Set-Cookie* value.
 * The second way is to use Java's own CookieManager/CookieStore, but there is a serious problem, the API design is not reasonable, CookieStore can only have one globally singleton instance. That means in one VM, if multiple requests access the same site concurrently, then they always share the same cookies, this is not acceptable in many circumstances.
 * CUrl class implements a ThreadLocal-based CookieStore, each thread has a separate cookie-store, which solves the above problem perfectly.
