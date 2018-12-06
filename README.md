@@ -25,26 +25,26 @@ java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in 
 * All switches can be passed in via CUrl.opt(...) method. For a list of supported parameters, please refer to the [table](#supported-switches).
 * Some frequently used switches provide short-cut methods, please refer to the [table](#supported-switches) and source code.
 * The *opt* method accepts multiple parameters and values. Note that if a CUrl switch needing a value, then the switch and value should be passed-in as two method parameters, e.g.:
-  - ```curl.opt("-d", "a=b", "-L")```
+  - ```curl.opt("-d", "a=b", "-L")``` 
   - The above example gives two command line switches, namely post data "a=b" and following redirect automatically.
 
 #### About CUrl.IO and its subclasses
 * CURL in Linux is a command line tool that is designed to read and write physical files, while java-curl as a programming library, support ByteArray or InputStream/OutputStream objects for reading and writing.
-* CUrl.IO is the abstracted interface for both input and output, its subclasses include:
-  - CUrl.MemIO: corresponds to a byte buffer for direct memory access
-  - CUrl.FileIO: corresponding to physical file 
-  - CUrl.WrappedIO: Simple wrapper for either InputStream or OutputStream
+* ```CUrl.IO``` is the abstracted interface for both input and output, its subclasses include:
+    * CUrl.MemIO: corresponds to a byte buffer for direct memory access
+    - CUrl.FileIO: corresponding to physical file
+    - ```CUrl.WrappedIO```: Simple wrapper for either InputStream or OutputStream.
 * Multiple methods can use IO as a parameter, including:
-  - cert(io, password): Read the client certificate from IO
-  - data(io, binary): read POST data from IO
-  - form(name, io): Read file/text item from IO to submit an multi-part post for file-uploading
-  - cookie(io): Read cookies from IO
-  - cookieJar(io): Save cookies to IO
-  - dumpHeader(io): dumps the response header to IO
-  - stdout/stderr: redirect standard-output/standard-error to IO
+  - ```cert(io, password)```: Read the client certificate from IO
+  - ```data(io, binary)```: read POST data from IO
+  - ```form(name, io)```: Read file/text item from IO to submit an multi-part post for file-uploading
+  - ```cookie(io)```: Read cookies from IO
+  - ```cookieJar(io)```: Save cookies to IO
+  - ```dumpHeader(io)```: dumps the response header to IO
+  - ```stdout/stderr```: redirect standard-output/standard-error to IO.
 * Following the CURL manual, "-" can be used to represent stdout, e.g.:
   - ```curl("http://...").opt("-D", "-", "-c", "-")```
-  - The above example initiates a request and outputs both the response header and website cookies to stdout
+  - The above example initiates a request and outputs both the response header and website cookies to stdout.
 
 #### About Cookies
 * There are two ways for handling cookies in standard Java. The first is to handle the *Cookie* request header and the *Set-Cookie* response header from the low level. Jsoup uses this approach, but there are some problems, including:
@@ -52,18 +52,18 @@ java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in 
   - According to some real-world tests, some versions of the JRE have a bug that loses the *Set-Cookie* value.
 * The second way is to use Java's own CookieManager/CookieStore, but there is a serious problem, the API design is not reasonable, CookieStore can only have one globally singleton instance. That means in one VM, if multiple requests access the same site concurrently, then they always share the same cookies, this is not acceptable in many circumstances.
 * CUrl class implements a ThreadLocal-based CookieStore, each thread has a separate cookie-store, which solves the above problem perfectly.
-* In addition to the *--cookie/--cookie-jar* parameter, you can also use *getCookieStore* to get the CookieStore singleton, directly call its add/getCookies and other methods to read and write the current thread's cookies.
-* Note 1: This class is slightly different from the CURL tool for convenience of use. Subsequent requests from the same thread do not automatically clear the cookie store. Therefore, for different urls on the same website, you don't have to add the --cookie/--cookie-jar parameter every time.
-* Note 2: If you are using a thread pool, because the threads in the pool can be reused, to avoid cookie pollution, please add a cookie("") call on the first request in the thread, which will clear the thread-local cookie-store.
+* In addition to the ```--cookie/--cookie-jar``` parameter, you can also use ```getCookieStore``` to get the CookieStore singleton, directly call its add/getCookies and other methods to read and write the current thread's cookies.
+* Note 1: This class is slightly different from the CURL tool for convenience of use. Subsequent requests from the same thread do not automatically clear the cookie store. Therefore, for different urls on the same website, you don't have to add the ```--cookie/--cookie-jar``` parameter every time.
+* Note 2: If you are using a thread pool, because the threads in the pool can be reused, to avoid cookie pollution, please add a ```cookie("")``` call on the first request in the thread, which will clear the thread-local cookie-store.
 
 #### About CUrl.Resolver and its subclasses
-* *CUrl.Resolver* is used to directly deserialize the raw response byte array into custom Java object, such as Xml, Json, Html, etc., can be combined with DOM4J, Jackson/Gson, Jsoup and other third-party libraries.
-* In the implementation of Resolver.resolve() method, if *CUrl.Recoverable* or its subclass instances are thrown, then this fail can be retried. If retry parameters are specified, CUrl will automatically retry the given number of times or given duration.
-  - Example: Even though the server API returns a response of status 200, but the business level error is "Please try again later". At this time, even if the request itself is successful, you can still throw a *Recoverable* to instruct CUrl to retry.
+* ```CUrl.Resolver``` is used to directly deserialize the raw response byte array into custom Java object, such as Xml, Json, Html, etc., can be combined with DOM4J, Jackson/Gson, Jsoup and other third-party libraries.
+* In the implementation of Resolver.resolve() method, if ```CUrl.Recoverable``` or its subclass instances are thrown, then this fail can be retried. If retry parameters are specified, CUrl will automatically retry the given number of times or given duration
+  - Example: Even though the server API returns a response of status 200, but the business level error is "Please try again later". At this time, even if the request itself is successful, you can still throw a ```Recoverable``` to instruct CUrl to retry.
 
 #### About HTTPS
 * For sites with valid certificates issued by legal certification authorities, direct access is available.
-* You can specify a self-signed certificate (since 1.2.2) using ```cert(io, password)``` or ```opt("-E", "path/to/file\:password")```
+* You can specify a self-signed certificate (since 1.2.2) using ```cert(io, password)``` or ```opt("-E", "path/to/file\:password")```.
 * You can also use ```insecure()``` or ```opt("-k")``` to instruct CUrl to ignore certificate security checks.
 * Currently CA certificates is not supported. If you are using a traffic capture tool to intercept HTTPS requests, please ignore the certificate security check.
 * You can use openssl, keytool to convert between PEM/P12/JKS/BKS certificates file format, see Example 8.
@@ -75,7 +75,7 @@ java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in 
 
 # Examples
 
-##### Example 1：POST form submission. Two data() call demonstrations that --data switch can be specified multiple times, and the parameter values can be overwritten.
+##### Example 1：POST form submission. Two data() call demonstrations that ```--data``` switch can be specified multiple times, and the parameter values can be overwritten.
 ```java
     public void httpPost() {
         CUrl curl = new CUrl("http://httpbin.org/post")
