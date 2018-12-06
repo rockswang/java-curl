@@ -48,8 +48,8 @@ java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in 
 
 #### About Cookies
 * There are two ways for handling cookies in standard Java. The first is to handle the *Cookie* request header and the *Set-Cookie* response header from the low level. Jsoup uses this approach, but there are some problems, including: 
-  - In addition to the key-value pairs, *Set-Cookie* contains domain, path, expire, httpOnly and other attributes, it's possible that multiple cookies with the same name, Jsoup use Map to store cookies, sometimes it leads to problems 
-  - According to some real-world tests, some versions of the JRE have a bug that loses the *Set-Cookie* value.
+	- In addition to the key-value pairs, *Set-Cookie* contains domain, path, expire, httpOnly and other attributes, it's possible that multiple cookies with the same name, Jsoup use Map to store cookies, sometimes it leads to problems 
+	- According to some real-world tests, some versions of the JRE have a bug that loses the *Set-Cookie* value 
 * The second way is to use Java's own `CookieManager/CookieStore`, but there is a serious problem, the API design is not reasonable, `CookieStore` can only have one globally singleton instance. That means in one VM, if multiple requests access the same site concurrently, then they always share the same cookies, this is not acceptable in many circumstances.
 * CUrl class implements a `ThreadLocal`-based `CookieStore`, each thread has a separate cookie-store, which solves the above problem perfectly.
 * In addition to the `--cookie/--cookie-jar` parameter, you can also use `getCookieStore` to get the `CookieStore` singleton, directly call its `add/getCookies` and other methods to read and write the current thread's cookies.
@@ -59,7 +59,7 @@ java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in 
 #### About CUrl.Resolver and its subclasses
 * `CUrl.Resolver` is used to directly deserialize the raw response byte array into custom Java object, such as Xml, Json, Html, etc., can be combined with DOM4J, Jackson/Gson, Jsoup and other third-party libraries.
 * In the implementation of `Resolver.resolve()` method, if `CUrl.Recoverable` or its subclass instances are thrown, then this fail can be retried. If retry parameters are specified, CUrl will automatically retry the given number of times or given duration
-  - Example: Even though the server API returns a response of status 200, but the business level error is "Please try again later". At this time, even if the request itself is successful, you can still throw a `Recoverable` to instruct CUrl to retry.
+	- Example: Even though the server API returns a response of status 200, but the business level error is "Please try again later". At this time, even if the request itself is successful, you can still throw a `Recoverable` to instruct CUrl to retry.
 
 #### About HTTPS
 * For sites with valid certificates issued by legal certification authorities, direct access is available.
