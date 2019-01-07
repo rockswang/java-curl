@@ -799,7 +799,7 @@ public final class CUrl {
 					if (insecure) {
 						((HttpsURLConnection) con).setHostnameVerifier(insecureVerifier);
 						((HttpsURLConnection) con).setSSLSocketFactory(insecureFactory);
-					} else {
+					} else if (cert != null) {
 						int idx = cert.lastIndexOf(':');
 						((HttpsURLConnection) con).setSSLSocketFactory(getSocketFactory(getIO(cert.substring(0, idx)), cert.substring(idx + 1)));
 					}
