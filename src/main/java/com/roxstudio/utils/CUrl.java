@@ -27,7 +27,7 @@ public final class CUrl {
 	private static final CookieStore cookieStore = new CookieStore();
 	private static HostnameVerifier insecureVerifier = null;
 	private static SSLSocketFactory insecureFactory = null;
-	
+
 	static {
 		try {
 			// Try to enable the setting to restricted headers like "Origin", this is expected to be executed before HttpURLConnection class-loading
@@ -49,7 +49,7 @@ public final class CUrl {
 			"--cert", 32, 					// <certificate[:password]> Client certificate file and password
 			"--compressed", 1, 				// Request compressed response (using deflate or gzip)
 			"--connect-timeout", 2, 		// SECONDS  Maximum time allowed for connection
-			"-b", 3, 
+			"-b", 3,
 			"--cookie", 3, 					// STRING/FILE  Read cookies from STRING/FILE (H)
 			"-c", 4,
 			"--cookie-jar", 4, 				// FILE  Write cookies to FILE after operation (H)
@@ -97,13 +97,13 @@ public final class CUrl {
 			"--url", 25, 					// URL	   URL to work with
 			"-A", 26,
 			"--user-agent", 26, 			// STRING  Send User-Agent STRING to server (H)
-			"-X", 27, 
+			"-X", 27,
 			"--request", 27,				// COMMAND  Specify request command to use
 			"--x-max-download", 29,			// BYTES Maximum bytes allowed for the download
 			"--x-tags", 30,					// DATA extra key-value pairs, storage only
 			"", 0 // placeholder
 	);
-	
+
 	private static final String BOUNDARY = "------------aia113jBkadk7289";
 	private static final byte[] NEWLINE = "\r\n".getBytes();
 
@@ -117,13 +117,13 @@ public final class CUrl {
 	private long execTime;
 	private int httpCode;
 	private byte[] rawStdout;
-	
+
 	public CUrl() {}
-	
+
 	public CUrl(String url) {
 		this.url(url);
 	}
-	
+
 	/**
 	 * Specify 0~N options, please refer to https://curl.haxx.se/docs/manpage.html
 	 * Note: the option name and corresponding value must be divided into two arguments, rather than one single string seperated by space
@@ -136,11 +136,11 @@ public final class CUrl {
 		}
 		return this;
 	}
-	
+
 	public final CUrl url(String url) {
 		return opt("--url", url);
 	}
-	
+
 	/**
 	 * Follow redirection automatically, false be default.
 	 * Only apply to HTTP CODE 30x
@@ -170,21 +170,21 @@ public final class CUrl {
 	 * @param retryMaxTime The max retry time in second, 0 means infinite
 	 */
 	public final CUrl retry(int retry, float retryDelay, float retryMaxTime) {
-		return opt("--retry", Integer.toString(retry), 
+		return opt("--retry", Integer.toString(retry),
 				"--retry-delay", Float.toString(retryDelay),
 				"--retry-max-time", Float.toString(retryMaxTime));
 	}
-	
+
 	/**
 	 * Specify timeout, default values are 0
 	 * @param connectTimeoutSeconds Connection timeout in second
 	 * @param readTimeoutSeconds Read timeout in second
 	 */
 	public final CUrl timeout(float connectTimeoutSeconds, float readTimeoutSeconds) {
-		return opt("--connect-timeout", Float.toString(connectTimeoutSeconds), 
+		return opt("--connect-timeout", Float.toString(connectTimeoutSeconds),
 				"--max-time", Float.toString(readTimeoutSeconds));
 	}
-	
+
 	/**
 	 * Add a custom request header
 	 * @param headerLine Syntax:
@@ -195,7 +195,7 @@ public final class CUrl {
 	public final CUrl header(String headerLine) {
 		return opt("-H", headerLine);
 	}
-	
+
 	public final CUrl headers(Map<String, ?> headers) {
 		for (Map.Entry<String, ?> kv: headers.entrySet()) {
 			Object k = kv.getKey(), v = kv.getValue();
@@ -203,7 +203,7 @@ public final class CUrl {
 		}
 		return this;
 	}
-	
+
 	/**
 	 * Add post data. The data among multiple calls will be joined with '&amp;'
 	 * @param data if data start with '@', then the following part will be treated as file path
@@ -211,7 +211,7 @@ public final class CUrl {
 	public final CUrl data(String data) {
 		return data(data, false);
 	}
-	
+
 	/**
 	 * Add post data. The data among multiple calls will be joined with '&amp;'
 	 * @param data 如果data以'@'开头且raw=false，则后面部分作为文件名，数据由该文件读入
@@ -220,7 +220,7 @@ public final class CUrl {
 	public final CUrl data(String data, boolean raw) {
 		return opt(raw ? "--data-raw" : "-d", data);
 	}
-	
+
 	/**
 	 * 从input中读取数据作为post数据
 	 * Read data from input and use as post data
@@ -232,7 +232,7 @@ public final class CUrl {
 		iomap.put(key = "IO#" + iomap.size(), input);
 		return opt(binary ? "--data-binary" : "-d", "@" + key);
 	}
-	
+
 	/**
 	 * 添加urlencode的post数据
 	 * Add URL-encoded post data
@@ -247,7 +247,7 @@ public final class CUrl {
 	public final CUrl data(String data, String charset) {
 		return opt("--data-urlencode" + (charset != null ? "-" + charset : ""), data);
 	}
-	
+
 	/**
 	 * 发起post文件上传，添加一个表单项
 	 * Issue a form based upload and add a form item
@@ -258,7 +258,7 @@ public final class CUrl {
 	public final CUrl form(String name, String content) {
 		return opt("-F", name + "=" + content);
 	}
-	
+
 	/**
 	 * 发起post文件上传，添加一个文件上传的表单项
 	 * Issue a form based upload and add a file item
@@ -270,7 +270,7 @@ public final class CUrl {
 		iomap.put(key = "IO#" + iomap.size(), input);
 		return opt("-F", name + "=@" + key);
 	}
-	
+
 	/**
 	 * 发起post文件上传，添加1~N个非文件表单项，注意此方法不对'@'进行特殊处理
 	 * @param formString 语法为"name1=value1[&amp;name2=value2...]"
@@ -278,8 +278,8 @@ public final class CUrl {
 	public final CUrl form(String formString) {
 		return opt("--form-string", formString);
 	}
-	
-	/** 
+
+	/**
 	 * 输出Cookie到给定的文件
 	 * Output Cookie to given file path
 	 * @param output 文件路径，使用'-'表示输出到标准输出。默认不输出
@@ -287,8 +287,8 @@ public final class CUrl {
 	public final CUrl cookieJar(String output) {
 		return opt("-c", output);
 	}
-	
-	/** 
+
+	/**
 	 * 输出Cookie到给定的数据IO
 	 * Output Cookie to given IO object
 	 * @param output 数据IO，注意cookieJar的输出会清除output中的原有内容
@@ -298,8 +298,8 @@ public final class CUrl {
 		iomap.put(key = "IO#" + iomap.size(), output);
 		return opt("-c", key);
 	}
-	
-	/** 
+
+	/**
 	 * 添加请求Cookie
 	 * Add custom Cookies in request
 	 * @param input 格式为"NAME1=VALUE1; NAME2=VALUE2"的Cookie键值对。
@@ -309,7 +309,7 @@ public final class CUrl {
 	public final CUrl cookie(String input) {
 		return opt("-b", input);
 	}
-	
+
 	/**
 	 * 读取数据IO并添加请求Cookie。
 	 * 注意CUrl会自动为同一线程内的多次请求维持Cookie
@@ -321,19 +321,19 @@ public final class CUrl {
 		iomap.put(key = "IO#" + iomap.size(), input);
 		return opt("-b", key);
 	}
-	
-	/** 
+
+	/**
 	 * 倾印原始响应头到给定的文件
 	 * Dump raw response headers to specified file path
-	 * @param output 输出文件的路径，使用'-'表示输出到标准输出。默认不输出。 
+	 * @param output 输出文件的路径，使用'-'表示输出到标准输出。默认不输出。
 	 */
 	public final CUrl dumpHeader(String output) {
 		return opt("-D", output);
 	}
-	
-	/** 
+
+	/**
 	 * 倾印原始响应头到给定的数据IO
-	 * @param output  
+	 * @param output
 	 */
 	public final CUrl dumpHeader(IO output) {
 		String key;
@@ -346,8 +346,8 @@ public final class CUrl {
 		iomap.put(key = "IO#" + iomap.size(), certificate);
 		return opt("-E", key + ":" + password);
 	}
-	
-	/** 
+
+	/**
 	 * 重定向标准错误输出到给定的文件
 	 * Redirect stderr to specified file path, use '-' for stdout
 	 * @param output 输出文件路径。使用'-'表示输出到标准输出。默认输出到标准输出。
@@ -355,8 +355,8 @@ public final class CUrl {
 	public final CUrl stderr(String output) {
 		return opt("--stderr", output); // output can be an OutputStream/File/path_to_file
 	}
-	
-	/** 
+
+	/**
 	 * 重定向标准错误输出到给定的数据IO
 	 * @param output
 	 */
@@ -365,8 +365,8 @@ public final class CUrl {
 		iomap.put(key = "IO#" + iomap.size(), output);
 		return opt("--stderr", key);
 	}
-	
-	/** 
+
+	/**
 	 * 输出应答数据到给定文件。注意标准输出默认即为exec方法的返回值。
 	 * Output response data to specified fila path
 	 * @param output 输出文件路径。使用'-'表示输出到标准输出。默认输出到标准输出。
@@ -374,8 +374,8 @@ public final class CUrl {
 	public final CUrl output(String output) {
 		return opt("-o", output); // output can be an OutputStream/File/path_to_file
 	}
-	
-	/** 
+
+	/**
 	 * 输出应答数据到给定数据IO
 	 * @param output
 	 */
@@ -384,7 +384,7 @@ public final class CUrl {
 		iomap.put(key = "IO#" + iomap.size(), output);
 		return opt("-o", key);
 	}
-	
+
 	/**
 	 * 添加一个数据IO，可作为数据输入或数据输出，在--data等参数值中引用
 	 * @param key
@@ -406,19 +406,33 @@ public final class CUrl {
 	 * @param output
 	 */
 	public static void saveCookies(IO output) {
-		StringBuilder sb = new StringBuilder();
-		for (HttpCookie cookie: cookieStore.getCookies()) {
-			long expire = cookie.getMaxAge() <= 0 || cookie.getMaxAge() >= Integer.MAX_VALUE ?
-					Integer.MAX_VALUE : cookie.getMaxAge() + System.currentTimeMillis() / 1000L;
-			sb.append(cookie.getDomain()).append('\t')
-					.append("FALSE").append('\t')
-					.append(cookie.getPath()).append('\t')
-					.append(cookie.getSecure() ? "TRUE" : "FALSE").append('\t')
-					.append(expire).append('\t')
-					.append(cookie.getName()).append('\t')
-					.append(cookie.getValue()).append('\n');
+		if (output instanceof CookieIO) {
+			CookieIO cs = (CookieIO) output;
+			synchronized (cs) { for (HttpCookie c: cookieStore.getCookies()) cs.add(null, c); }
+		} else {
+			String s = dumpCookies(cookieStore.getCookies());
+			writeOutput(output, Util.s2b(s, null), false);
 		}
-		writeOutput(output, Util.s2b(sb.toString(), null), false);
+	}
+
+	public static String dumpCookie(HttpCookie cookie) {
+		StringBuilder sb = new StringBuilder();
+		long expire = cookie.getMaxAge() <= 0 || cookie.getMaxAge() >= Integer.MAX_VALUE ?
+				Integer.MAX_VALUE : cookie.getMaxAge() + System.currentTimeMillis() / 1000L;
+		sb.append(cookie.getDomain()).append('\t')
+				.append("FALSE").append('\t')
+				.append(cookie.getPath()).append('\t')
+				.append(cookie.getSecure() ? "TRUE" : "FALSE").append('\t')
+				.append(expire).append('\t')
+				.append(cookie.getName()).append('\t')
+				.append(cookie.getValue()).append('\n');
+		return sb.toString();
+	}
+
+	public static String dumpCookies(List<HttpCookie> cookies) {
+		StringBuilder sb = new StringBuilder();
+		for (HttpCookie cookie: cookies) sb.append(dumpCookie(cookie));
+		return sb.toString();
 	}
 
 	/**
@@ -426,8 +440,18 @@ public final class CUrl {
 	 * @param input
 	 */
 	public static void loadCookies(IO input) {
-		String s = Util.b2s(readInput(input), null, null);
-		BufferedReader br = new BufferedReader(new StringReader(s));
+		if (input instanceof CookieIO) {
+			CookieIO cs = (CookieIO) input;
+			synchronized (cs) { for (HttpCookie c: cs.getCookies()) cookieStore.add(null, c); }
+		} else {
+			List<HttpCookie> cookies = parseCookies(Util.b2s(readInput(input), null, null));
+			for (HttpCookie c : cookies) cookieStore.add(null, c);
+		}
+	}
+
+	public static List<HttpCookie> parseCookies(String input) {
+		BufferedReader br = new BufferedReader(new StringReader(input));
+		ArrayList<HttpCookie> result = new ArrayList<HttpCookie>();
 		try {
 			for (String line = br.readLine(), l[]; line != null; line = br.readLine()) {
 				if (line.trim().length() == 0 || line.startsWith("# ") || (l = line.split("\t")).length < 7) continue;
@@ -440,6 +464,7 @@ public final class CUrl {
 				if (!cookie.hasExpired()) cookieStore.add(null, cookie);
 			}
 		} catch (Exception ignored) { } // should not happen
+		return result;
 	}
 
 	/**
@@ -462,7 +487,16 @@ public final class CUrl {
 	public final List<String> getOptions() {
 		return options;
 	}
-	
+
+	public final String getOption(String name) {
+		if (!ptnOptionName.matcher(name).matches()) throw new IllegalArgumentException("Invalid option name: " + name);
+		int idx = options.indexOf(name);
+		if (idx < 0) return null;
+		String next = idx + 1 < options.size() ? options.get(idx + 1) : null;
+		if (next != null && ptnOptionName.matcher(next).matches()) next = null;
+		return next != null ? next : "TRUE";
+	}
+
 	public final Map<String, String> getTags() {
 		return tags;
 	}
@@ -499,7 +533,7 @@ public final class CUrl {
 	public final int getHttpCode() {
 		return httpCode;
 	}
-	
+
 	public final <T> T getStdout(Resolver<T> resolver, T fallback) {
 		try { return resolver.resolve(httpCode, rawStdout); } catch (Throwable ignored) {}
 		return fallback;
@@ -513,7 +547,7 @@ public final class CUrl {
 	public final List<URL> getLocations() {
 		return locations;
 	}
-	
+
 	/**
 	 * 解析参数，执行请求，并将标准输出以给定的encoding解码为字符串
 	 * Parse options and execute the request。Decode the raw response to String with given character-encoding
@@ -523,7 +557,7 @@ public final class CUrl {
 	public final String exec(String encoding) {
 		return exec(encoding != null ? new ToStringResolver(encoding) : UTF8, null);
 	}
-	
+
 	/**
 	 * 解析参数，执行请求，返回原始字节数组
 	 * Parse options and execute the request, return raw response.
@@ -532,7 +566,7 @@ public final class CUrl {
 	public final byte[] exec() {
 		return exec(RAW, null);
 	}
-	
+
 	/**
 	 * 解析参数并执行请求
 	 * 默认仅包含应答数据。指定"--silent"参数则不输出。
@@ -573,179 +607,179 @@ public final class CUrl {
 				opt = "--data-urlencode";
 			}
 			switch (Util.mapGet(optMap, opt, -1)) {
-			case 32: // --cert  <certificate[:password]> Client certificate file and password
-				cert = options.get(++i);
-				break;
-			case 1: // --compressed  Request compressed response (using deflate or gzip)
-				headers.put("Accept-Encoding", "gzip, deflate");
-				break;
-			case 2: // --connect-timeout  SECONDS  Maximum time allowed for connection
-				connectTimeout = Float.parseFloat(options.get(++i)); 
-				break;
-			case 3: // --cookie  STRING/FILE  Read cookies from STRING/FILE (H)
-				cookie = options.get(++i);
-				break;
-			case 4: // --cookie-jar  FILE  Write cookies to FILE after operation (H)
-				cookieJar = getIO(options.get(++i)); 
-				break;
-			case 5: // --data  DATA	 HTTP POST data (H)
-				String data = options.get(++i);
-				if (data.startsWith("@")) data = Util.b2s(readInput(getIO(data.substring(1))), null, null).replaceAll("[\r\n]+", "");
-				mergeData = dataSb.length() > 0;
-				dataSb.append(mergeData ? "&" : "").append(data);
-				break;
-			case 51: // --data-raw  DATA	 not handle "@"
-				mergeData = dataSb.length() > 0;
-				dataSb.append(mergeData ? "&" : "").append(options.get(++i));
-				break;
-			case 52: // --data-binary  DATA	 not stripping CR/LF
-				data = options.get(++i);
-				if (data.startsWith("@")) data = Util.b2s(readInput(getIO(data.substring(1))), null, null);
-				mergeData = dataSb.length() > 0;
-				dataSb.append(mergeData ? "&" : "").append(data);
-				break;
-			case 53: // --data-urlencode 
-				mergeData = dataSb.length() > 0;
-				data = options.get(++i);
-				int idx, atIdx;
-				switch (idx = data.indexOf("=")) {
-				case -1: // no '='
-					if ((atIdx = data.indexOf("@")) >= 0) { // [name]@filename
-						String prefix = atIdx > 0 ? data.substring(0, atIdx) + "=" : "";
-						try { 
-							data = prefix + URLEncoder.encode(Util.b2s(readInput(getIO(data.substring(atIdx + 1))), null, ""), charset);
-						} catch (Exception e) {
-							lastEx = e;
-						}
-						break;
-					} // else fall through
-				case 0: // =content
-					try { 
-						data = URLEncoder.encode(data.substring(idx + 1), charset);
-					} catch (Exception e) {
-						lastEx = e;
+				case 32: // --cert  <certificate[:password]> Client certificate file and password
+					cert = options.get(++i);
+					break;
+				case 1: // --compressed  Request compressed response (using deflate or gzip)
+					headers.put("Accept-Encoding", "gzip, deflate");
+					break;
+				case 2: // --connect-timeout  SECONDS  Maximum time allowed for connection
+					connectTimeout = Float.parseFloat(options.get(++i));
+					break;
+				case 3: // --cookie  STRING/FILE  Read cookies from STRING/FILE (H)
+					cookie = options.get(++i);
+					break;
+				case 4: // --cookie-jar  FILE  Write cookies to FILE after operation (H)
+					cookieJar = getIO(options.get(++i));
+					break;
+				case 5: // --data  DATA	 HTTP POST data (H)
+					String data = options.get(++i);
+					if (data.startsWith("@")) data = Util.b2s(readInput(getIO(data.substring(1))), null, null).replaceAll("[\r\n]+", "");
+					mergeData = dataSb.length() > 0;
+					dataSb.append(mergeData ? "&" : "").append(data);
+					break;
+				case 51: // --data-raw  DATA	 not handle "@"
+					mergeData = dataSb.length() > 0;
+					dataSb.append(mergeData ? "&" : "").append(options.get(++i));
+					break;
+				case 52: // --data-binary  DATA	 not stripping CR/LF
+					data = options.get(++i);
+					if (data.startsWith("@")) data = Util.b2s(readInput(getIO(data.substring(1))), null, null);
+					mergeData = dataSb.length() > 0;
+					dataSb.append(mergeData ? "&" : "").append(data);
+					break;
+				case 53: // --data-urlencode
+					mergeData = dataSb.length() > 0;
+					data = options.get(++i);
+					int idx, atIdx;
+					switch (idx = data.indexOf("=")) {
+						case -1: // no '='
+							if ((atIdx = data.indexOf("@")) >= 0) { // [name]@filename
+								String prefix = atIdx > 0 ? data.substring(0, atIdx) + "=" : "";
+								try {
+									data = prefix + URLEncoder.encode(Util.b2s(readInput(getIO(data.substring(atIdx + 1))), null, ""), charset);
+								} catch (Exception e) {
+									lastEx = e;
+								}
+								break;
+							} // else fall through
+						case 0: // =content
+							try {
+								data = URLEncoder.encode(data.substring(idx + 1), charset);
+							} catch (Exception e) {
+								lastEx = e;
+							}
+							break;
+						default: // name=content
+							Map<String, String> m = Util.split(data, "&", "=", new LinkedHashMap<String, String>());
+							for (Map.Entry<String, String> en: m.entrySet()) {
+								try { en.setValue(URLEncoder.encode(en.getValue(), "UTF-8")); } catch (Exception ignored) { }
+							}
+							data = Util.join(m, "&", "=");
+					}
+					dataSb.append(mergeData ? "&" : "").append(data);
+					break;
+				case 6: // --dump-header  FILE  Write the headers to FILE
+					dumpHeader = getIO(options.get(++i));
+					break;
+				case 7: // --form  CONTENT  Specify HTTP multipart POST data (H)
+					data = options.get(++i);
+					idx = data.indexOf('=');
+					form.put(data.substring(0, idx), new Util.Ref<String>(1, data.substring(idx + 1)));
+					break;
+				case 71: // --form-string  STRING  Specify HTTP multipart POST data (H)
+					for (String[] pair: Util.split(options.get(++i), "&", "=")) {
+						form.put(pair[0], new Util.Ref<String>(pair[1]));
 					}
 					break;
-				default: // name=content
-					Map<String, String> m = Util.split(data, "&", "=", new LinkedHashMap<String, String>());
-					for (Map.Entry<String, String> en: m.entrySet()) {
-						try { en.setValue(URLEncoder.encode(en.getValue(), "UTF-8")); } catch (Exception ignored) { }
+				case 8: // --get  Send the -d data with a HTTP GET (H)
+					method = "GET";
+					break;
+				case 10: // --header  LINE   Pass custom header LINE to server (H)
+					String[] hh = options.get(++i).split(":", 2);
+					String name = hh[0].trim();
+					if (hh.length == 1 && name.endsWith(";")) { // "X-Custom-Header;"
+						headers.put(name.substring(0, name.length() - 1), "");
+					} else if (hh.length == 1 || Util.empty(hh[1])) { // "Host:"
+						headers.remove(name);
+					} else { // "Host: baidu.com"
+						headers.put(name, hh[1].trim());
 					}
-					data = Util.join(m, "&", "=");
-				}
-				dataSb.append(mergeData ? "&" : "").append(data);
-				break;
-			case 6: // --dump-header  FILE  Write the headers to FILE
-				dumpHeader = getIO(options.get(++i)); 
-				break;
-			case 7: // --form  CONTENT  Specify HTTP multipart POST data (H)
-				data = options.get(++i);
-				idx = data.indexOf('=');
-				form.put(data.substring(0, idx), new Util.Ref<String>(1, data.substring(idx + 1)));
-				break;
-			case 71: // --form-string  STRING  Specify HTTP multipart POST data (H)
-				for (String[] pair: Util.split(options.get(++i), "&", "=")) {
-					form.put(pair[0], new Util.Ref<String>(pair[1]));
-				}
-				break;
-			case 8: // --get  Send the -d data with a HTTP GET (H)
-				method = "GET";
-				break;
-			case 10: // --header  LINE   Pass custom header LINE to server (H)
-				String[] hh = options.get(++i).split(":", 2);
-				String name = hh[0].trim();
-				if (hh.length == 1 && name.endsWith(";")) { // "X-Custom-Header;"
-					headers.put(name.substring(0, name.length() - 1), "");
-				} else if (hh.length == 1) { // "Host:"
-					headers.remove(name);
-				} else { // "Host: baidu.com"
-					headers.put(name, hh[1].trim());
-				}
-				break;
-			case 11: // --head  Show document info only
-				method = "HEAD";
-				break;
+					break;
+				case 11: // --head  Show document info only
+					method = "HEAD";
+					break;
 //			case 12: // --ignore-content-length  Ignore the HTTP Content-Length header
 //				ignoreContentLength = true;
 //				break;
-			case 13: // --location  Follow redirects (H)
-				location = true;
-				break;
-			case 14: // --max-time  SECONDS  Maximum time allowed for the transfer
-				maxTime = Float.parseFloat(options.get(++i)); 
-				break;
+				case 13: // --location  Follow redirects (H)
+					location = true;
+					break;
+				case 14: // --max-time  SECONDS  Maximum time allowed for the transfer
+					maxTime = Float.parseFloat(options.get(++i));
+					break;
 //			case 15: // --no-keepalive  Disable keepalive use on the connection
 //				noKeepAlive = true;
 //				break;
-			case 16: // --output  FILE   Write to FILE instead of stdout
-				output = getIO(options.get(++i)); 
-				break;
-			case 17: // --proxy  [PROTOCOL://]HOST[:PORT]  Use proxy on given port
-				String[] pp = options.get(++i).split(":");
-				InetSocketAddress addr = new InetSocketAddress(pp[0], pp.length > 1 ? Integer.parseInt(pp[1]) : 1080);
-				proxy = new Proxy(Proxy.Type.HTTP, addr);
-				break;
-			case 18: // --proxy-user  USER[:PASSWORD]  Proxy user and password
-				final String proxyAuth = options.get(++i);
-				headers.put("Proxy-Authorization", "Basic " + Util.base64Encode(proxyAuth.getBytes()));
-				Authenticator.setDefault(new Authenticator() {
-					@Override
-					protected PasswordAuthentication getPasswordAuthentication() {
-						String[] up = proxyAuth.split(":");
-						return new PasswordAuthentication(up[0], (up.length > 1 ? up[1] : "").toCharArray());
-					}
-				});
-				break;
-			case 19: // --referer  Referer URL (H)
-				headers.put("Referer", options.get(++i));
-				break;
-			case 20: // --retry  NUM   Retry request NUM times if transient problems occur
-				retry = Integer.parseInt(options.get(++i));
-				break;
-			case 21: // --retry-delay  SECONDS  Wait SECONDS between retries
-				retryDelay = Float.parseFloat(options.get(++i));
-				break;
-			case 22: // --retry-max-time  SECONDS  Retry only within this period
-				retryMaxTime = Float.parseFloat(options.get(++i));
-				break;
-			case 23: // --silent  Silent mode (don't output anything)
-				silent = true;
-				break;
-			case 24: // --stderr  FILE   Where to redirect stderr (use "-" for stdout)
-				stderr = getIO(options.get(++i));
-				break;
-			case 25: // --url  URL	   URL to work with
-				url = options.get(++i);
-				break;
-			case 26: // --user-agent  STRING  Send User-Agent STRING to server (H)
-				headers.put("User-Agent", options.get(++i));
-				break;
-			case 27: // --request  COMMAND  Specify request command to use
-				method = options.get(++i);
-				break;
-			case 28: // -u, --user USER[:PASSWORD]  Server user and password
-				headers.put("Authorization", "Basic " + Util.base64Encode(options.get(++i).getBytes()));
-				break;
-			case 29: // --x-max-download  BYTES Maximum bytes allowed for the download
-				maxDownload = Integer.parseInt(options.get(++i));
-				break;
-			case 30: // --x-tags  DATA extra key-value pairs, storage only
-				Util.split(options.get(++i), "&", "=", tags);
-				break;
-			case 31: //
-				insecure = true;
-				break;
-			default: lastEx = new IllegalArgumentException("option " + opt + ": is unknown");
+				case 16: // --output  FILE   Write to FILE instead of stdout
+					output = getIO(options.get(++i));
+					break;
+				case 17: // --proxy  [PROTOCOL://]HOST[:PORT]  Use proxy on given port
+					String[] pp = options.get(++i).split(":");
+					InetSocketAddress addr = new InetSocketAddress(pp[0], pp.length > 1 ? Integer.parseInt(pp[1]) : 1080);
+					proxy = new Proxy(Proxy.Type.HTTP, addr);
+					break;
+				case 18: // --proxy-user  USER[:PASSWORD]  Proxy user and password
+					final String proxyAuth = options.get(++i);
+					headers.put("Proxy-Authorization", "Basic " + Util.base64Encode(proxyAuth.getBytes()));
+					Authenticator.setDefault(new Authenticator() {
+						@Override
+						protected PasswordAuthentication getPasswordAuthentication() {
+							String[] up = proxyAuth.split(":");
+							return new PasswordAuthentication(up[0], (up.length > 1 ? up[1] : "").toCharArray());
+						}
+					});
+					break;
+				case 19: // --referer  Referer URL (H)
+					headers.put("Referer", options.get(++i));
+					break;
+				case 20: // --retry  NUM   Retry request NUM times if transient problems occur
+					retry = Integer.parseInt(options.get(++i));
+					break;
+				case 21: // --retry-delay  SECONDS  Wait SECONDS between retries
+					retryDelay = Float.parseFloat(options.get(++i));
+					break;
+				case 22: // --retry-max-time  SECONDS  Retry only within this period
+					retryMaxTime = Float.parseFloat(options.get(++i));
+					break;
+				case 23: // --silent  Silent mode (don't output anything)
+					silent = true;
+					break;
+				case 24: // --stderr  FILE   Where to redirect stderr (use "-" for stdout)
+					stderr = getIO(options.get(++i));
+					break;
+				case 25: // --url  URL	   URL to work with
+					url = options.get(++i);
+					break;
+				case 26: // --user-agent  STRING  Send User-Agent STRING to server (H)
+					headers.put("User-Agent", options.get(++i));
+					break;
+				case 27: // --request  COMMAND  Specify request command to use
+					method = options.get(++i);
+					break;
+				case 28: // -u, --user USER[:PASSWORD]  Server user and password
+					headers.put("Authorization", "Basic " + Util.base64Encode(options.get(++i).getBytes()));
+					break;
+				case 29: // --x-max-download  BYTES Maximum bytes allowed for the download
+					maxDownload = Integer.parseInt(options.get(++i));
+					break;
+				case 30: // --x-tags  DATA extra key-value pairs, storage only
+					Util.split(options.get(++i), "&", "=", tags);
+					break;
+				case 31: //
+					insecure = true;
+					break;
+				default: lastEx = new IllegalArgumentException("option " + opt + ": is unknown");
 			}
-			if (lastEx != null) 
+			if (lastEx != null)
 				return error(stdout, stderr, lastEx, silent, resolver, fallback);
 		}
 		if (url == null) {
 			lastEx = new IllegalArgumentException("no URL specified!");
 			return error(stdout, stderr, lastEx, silent, resolver, fallback);
 		}
-		if (dataSb.length() > 0 && form.size() > 0 
-				|| dataSb.length() > 0 && "HEAD".equals(method) 
+		if (dataSb.length() > 0 && form.size() > 0
+				|| dataSb.length() > 0 && "HEAD".equals(method)
 				|| form.size() > 0 && "HEAD".equals(method)) {
 			lastEx = new IllegalArgumentException("Warning: You can only select one HTTP request!");
 			return error(stdout, stderr, lastEx, silent, resolver, fallback);
@@ -754,7 +788,7 @@ public final class CUrl {
 		if (form.size() > 0) {
 			if (method == null) method = "POST";
 		} else if (dataSb.length() > 0) {
-			dataStr = !mergeData ? dataSb.toString() 
+			dataStr = !mergeData ? dataSb.toString()
 					: Util.join(Util.split(dataSb.toString(), "&", "=", new LinkedHashMap<String, String>()), "&", "=");
 			if (method == null) method = "POST";
 		}
@@ -768,7 +802,7 @@ public final class CUrl {
 				loadCookies(getIO(cookie));
 			}
 		}
-		
+
 		boolean needRetry = false;
 		if (dataStr.length() > 0 && "GET".equals(method)) url += (url.contains("?") ? "&" : "?") + dataStr;
 		URL urlObj = null;
@@ -784,9 +818,9 @@ public final class CUrl {
 				if (retryLeft == retry) { // add at first time
 					if (locations.size() > 51) {
 						redirect = null;
-						throw new RuntimeException("Too many redirects."); 
+						throw new RuntimeException("Too many redirects.");
 					}
-					locations.add(urlObj); 
+					locations.add(urlObj);
 					responseHeaders.add(new ArrayList<String[]>());
 				}
 				HttpURLConnection con = (HttpURLConnection) urlObj.openConnection(proxy);
@@ -805,7 +839,7 @@ public final class CUrl {
 					}
 				}
 				for (Map.Entry<String, String> h: headers.entrySet()) con.setRequestProperty(h.getKey(), h.getValue());
-				if ("POST".equals(method)) {
+				if ("POST".equals(method) || "PUT".equals(method)) {
 					con.setDoInput(true);
 					con.setDoOutput(true);
 					byte[] data;
@@ -829,7 +863,7 @@ public final class CUrl {
 								if (_1st.startsWith("@") || _1st.startsWith("<")) { // it's file
 									IO in = getIO(_1st.substring(1));
 									File f = in instanceof FileIO ? ((FileIO) in).f : null;
-									filename = _1st.startsWith("<") ? null : 
+									filename = _1st.startsWith("<") ? null :
 											filename != null ? filename : f != null ? f.getAbsolutePath() : name;
 									if (f != null && !(f.exists() && f.isFile() && f.canRead()))
 										throw new IllegalArgumentException("couldn't open file \"" + filename + "\"");
@@ -875,7 +909,7 @@ public final class CUrl {
 				try {
 					is = con.getInputStream();
 				} catch (Exception e) {
-					if (httpCode == 407 && proxy != Proxy.NO_PROXY && "https".equals(urlObj.getProtocol()) 
+					if (httpCode == 407 && proxy != Proxy.NO_PROXY && "https".equals(urlObj.getProtocol())
 							&& headers.containsKey("Proxy-Authorization")) {
 						throw new RuntimeException(e.getMessage() + "\nTry using VM argument \"-Djdk.http.auth.tunneling.disabledSchemes=\"", e);
 					}
@@ -891,7 +925,7 @@ public final class CUrl {
 				}
 				int idx = locations.size() - 1;
 				fillResponseHeaders(con, responseHeaders.get(idx));
-				if (dumpHeader != null) dumpHeader(responseHeaders.get(idx), dumpHeader); 
+				if (dumpHeader != null) dumpHeader(responseHeaders.get(idx), dumpHeader);
 				if (bb != null && bb.length > 0) writeOutput(output, bb, output == dumpHeader);
 				if (lastEx != null) throw lastEx;
 				if (redirect == null || !location) {
@@ -903,20 +937,20 @@ public final class CUrl {
 			} catch (Throwable e) {
 				needRetry = isRecoverable(e.getClass());
 				lastEx = e instanceof Recoverable ? e.getCause() : e;
-				if (needRetry && retryLeft > 0 && retryDelay > 0) 
+				if (needRetry && retryLeft > 0 && retryDelay > 0)
 					try { Thread.sleep((long) (retryDelay * 1000d)); } catch (Exception ignored) {}
 			}
-		} while (location && redirect != null || needRetry && --retryLeft >= 0 
+		} while (location && redirect != null || needRetry && --retryLeft >= 0
 				&& (retryMaxTime <= 0 || System.currentTimeMillis() - startTime < (long) (retryMaxTime * 1000d)));
 		return error(stdout, stderr, lastEx, silent, resolver, fallback);
 	}
-	
+
 	/** 根据key获取对应IO，如果iomap中没有，则key作为文件路径创建一个FileIO  */
 	private IO getIO(String key) {
 		IO io;
 		return (io = iomap.get(key)) == null ? new FileIO(key) : io;
 	}
-	
+
 	private <T> T error(IO stdout, IO stderr, Throwable ex, boolean silent, Resolver<T> rr, T fallback) {
 		writeOutput(stderr, Util.dumpStackTrace(ex, false).getBytes(), true);
 		httpCode = ex instanceof Recoverable ? ((Recoverable) ex).httpCode : -1;
@@ -941,7 +975,7 @@ public final class CUrl {
 		return s.startsWith("'") && s.endsWith("'") || s.startsWith("\"") && s.endsWith("\"") ?
 				s.substring(1, s.length() - 1) : s;
 	}
-	
+
 	private static void fillResponseHeaders(HttpURLConnection con, List<String[]> headers) {
 		headers.clear();
 		Object responses = Util.getField(con, null, "responses", null, true); // sun.net.www.MessageHeader
@@ -964,15 +998,15 @@ public final class CUrl {
 			}
 		}
 	}
-	
+
 	private static void dumpHeader(List<String[]> headers, IO dumpHeader) throws Exception {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		for (String[] kv: headers) 
+		for (String[] kv: headers)
 			bos.write(((kv[0] != null ? kv[0] + ": " : "") + (kv[1] != null ? kv[1] : "") + "\r\n").getBytes());
 		bos.write(NEWLINE);
 		writeOutput(dumpHeader, bos.toByteArray(), false);
 	}
-	
+
 	/** 读取IO中的数据，如不适用或无数据则返回空数组 */
 	private static byte[] readInput(IO in) {
 		InputStream is = in.getInputStream();
@@ -981,7 +1015,7 @@ public final class CUrl {
 		in.close();
 		return bb;
 	}
-	
+
 	/** 把数据输出到IO，如不适用则直接返回。如append为true则向数据IO添加，否则覆盖。*/
 	private static void writeOutput(IO out, byte[] bb, boolean append) {
 		out.setAppend(append);
@@ -995,16 +1029,16 @@ public final class CUrl {
 		}
 		out.close();
 	}
-	
+
 	private static final HashSet<Class> RECOVERABLES = Util.listAdd(
-			new HashSet<Class>(), 
-			(Class) Recoverable.class, 
+			new HashSet<Class>(),
+			(Class) Recoverable.class,
 			ConnectException.class,
 			HttpRetryException.class,
 			SocketException.class,
 			SocketTimeoutException.class,
 			NoRouteToHostException.class);
-	
+
 	private static boolean isRecoverable(Class<? extends Throwable> errCls) {
 		if (RECOVERABLES.contains(errCls)) return true;
 		for (Class re: RECOVERABLES) if (re.isAssignableFrom(errCls)) return true;
@@ -1033,34 +1067,34 @@ public final class CUrl {
 	}
 
 	///////////////////////////// Inner Classes & static instances ///////////////////////////////////////
-	
+
 	public interface Resolver<T> {
 		T resolve(int httpCode, byte[] responseBody) throws Throwable;
 	}
-	
+
 	public static class ToStringResolver implements Resolver<String> {
 		final private String charset;
 		public ToStringResolver(String charset) { this.charset = charset; }
 		@Override
 		public String resolve(int httpCode, byte[] raw) throws Throwable { return new String(raw, charset); }
 	}
-	
+
 	public static final Resolver<byte[]> RAW = new Resolver<byte[]>() {
 		@Override
 		public byte[] resolve(int httpCode, byte[] raw) { return raw; }
 	};
-	
+
 	public static final ToStringResolver UTF8 = new ToStringResolver("UTF-8");
 	public static final ToStringResolver GBK = new ToStringResolver("GBK");
 	public static final ToStringResolver ISO_8859_1 = new ToStringResolver("ISO-8859-1");
-	
+
 	public interface IO {
 		InputStream getInputStream();
 		OutputStream getOutputStream();
 		void setAppend(boolean append);
 		void close();
 	}
-	
+
 	public static final class WrappedIO implements IO {
 		final InputStream is;
 		final OutputStream os;
@@ -1074,68 +1108,68 @@ public final class CUrl {
 		public void close() {} // wrapper is not responsible for closing
 		public String toString() { return "WrappedIO<" + is + "," + os + ">"; }
 	}
-	
+
 	@SuppressWarnings("ResultOfMethodCallIgnored")
 	public static final class FileIO implements IO {
 		private File f;
 		private transient InputStream is;
 		private transient OutputStream os;
 		boolean append = false;
-		
+
 		public FileIO(File f) {
 			this.f = f.getAbsoluteFile();
 		}
-		
+
 		public FileIO(String path) {
 			this(new File(path));
 		}
-		
+
 		public InputStream getInputStream() {
 			if (f.exists() && f.isFile() && f.canRead()) {
 				try { return is = new FileInputStream(f); } catch (Exception ignored) {}
 			}
 			return null;
-		} 
-		
+		}
+
 		public OutputStream getOutputStream() {
 			Util.mkdirs(f.getParentFile());
-			try { 
+			try {
 				f.createNewFile();
 				f.setReadable(true, false);
 				f.setWritable(true, false);
-				os = new FileOutputStream(f, append); 
+				os = new FileOutputStream(f, append);
 			} catch (Exception ignored) {}
 			return os;
 		}
-		
-		public void setAppend(boolean append) { 
+
+		public void setAppend(boolean append) {
 			this.append = append;
 		}
-		
+
 		public void close() {
 			try { if (is != null) is.close(); } catch (Exception ignored) {}
 			try { if (os != null) os.close(); } catch (Exception ignored) {}
 		}
-		
+
 		public String toString() {
 			return "FileIO<" + f + ">";
 		}
 	}
-	
+
 	public static final class MemIO extends ByteArrayOutputStream implements IO {
 		public MemIO() { super(0); }
 		public InputStream getInputStream() { return new ByteArrayInputStream(buf, 0, count); }
 		public OutputStream getOutputStream() { return this; }
 		public void setAppend(boolean append) { if (!append) this.reset(); }
 		public void close() {} // not needed
-		public String toString() { return "MemIO<" + this.hashCode() + ">"; } 
+		public String toString() { return "MemIO<" + this.hashCode() + ">"; }
 		/**
 		 * This is useful when the MemIO was used as the target of --dump-header
 		 * @return
 		 */
 		public Map<String, String> parseDumpedHeader() {
 			Map<String, String> result = new LinkedHashMap<String, String>();
-			String s = new String(this.toByteArray());
+			String s = Util.b2s(this.toByteArray(), null, null);
 			for (String l: s.split("[\r\n]+")) {
 				if (l.trim().length() == 0) continue;
 				String[] kv = l.split(":", 2);
@@ -1143,27 +1177,47 @@ public final class CUrl {
 			}
 			return result;
 		}
+
+		public List<HttpCookie> parseCookieJar() {
+			return parseCookies(Util.b2s(this.toByteArray(), null, null));
+		}
+
 	}
 
-	public static final class CookieStore implements java.net.CookieStore {
-		
-		private final ThreadLocal<Map<String, List<HttpCookie>>> cookies = new ThreadLocal<Map<String, List<HttpCookie>>>() {
-			@Override protected synchronized Map<String, List<HttpCookie>> initialValue() {
-				return new HashMap<String, List<HttpCookie>>();
-			}
-		};
+	public static class CookieIO implements IO, java.net.CookieStore {
 
-		private CookieStore() { }
+		public InputStream getInputStream() { throw new RuntimeException(); }
+		public OutputStream getOutputStream() { throw new RuntimeException(); }
+		public void setAppend(boolean append) {}
+		public void close() {}
+
+		protected final Map<String, List<HttpCookie>> cookiesMap;
+
+		public CookieIO() {
+			cookiesMap = new HashMap<String, List<HttpCookie>>();
+		}
+
+		protected Map<String, List<HttpCookie>> getCookiesMap() {
+			return cookiesMap;
+		}
+
+		public void add(String uri, String key, String value) {
+			try {
+				this.add(new URI(uri), new HttpCookie(key, value));
+			} catch (URISyntaxException e) {
+				throw new IllegalArgumentException(e);
+			}
+		}
 
 		@Override
 		public void add(URI uri, HttpCookie cookie) {
 			normalize(uri, cookie);
-			Map<String, List<HttpCookie>> map = Util.mapListAdd(cookies.get(), ArrayList.class, cookie.getDomain());
+			Map<String, List<HttpCookie>> map = Util.mapListAdd(getCookiesMap(), ArrayList.class, cookie.getDomain());
 			List<HttpCookie> cc = map.get(cookie.getDomain());
 			cc.remove(cookie);
 			if (cookie.getMaxAge() != 0) cc.add(cookie);
 		}
-		
+
 		@Override
 		public List<HttpCookie> get(URI uri) {
 			List<HttpCookie> result = getCookies();
@@ -1178,7 +1232,7 @@ public final class CUrl {
 		@Override
 		public List<HttpCookie> getCookies() {
 			List<HttpCookie> result = new ArrayList<HttpCookie>();
-			for (List<HttpCookie> cc: cookies.get().values()) {
+			for (List<HttpCookie> cc: getCookiesMap().values()) {
 				for (ListIterator<HttpCookie> it = cc.listIterator(); it.hasNext();)
 					if (it.next().hasExpired()) it.remove();
 				result.addAll(cc);
@@ -1203,13 +1257,13 @@ public final class CUrl {
 		@Override
 		public boolean remove(URI uri, HttpCookie cookie) {
 			normalize(uri, cookie);
-			List<HttpCookie> cc = cookies.get().get(cookie.getDomain());
+			List<HttpCookie> cc = getCookiesMap().get(cookie.getDomain());
 			return cc != null && cc.remove(cookie);
 		}
 
 		@Override
 		public boolean removeAll() {
-			cookies.get().clear();
+			getCookiesMap().clear();
 			return true;
 		}
 
@@ -1232,7 +1286,21 @@ public final class CUrl {
 		}
 
 	}
-	
+
+	public static final class CookieStore extends CookieIO {
+
+		private final ThreadLocal<Map<String, List<HttpCookie>>> cookies = new ThreadLocal<Map<String, List<HttpCookie>>>() {
+			@Override protected synchronized Map<String, List<HttpCookie>> initialValue() {
+				return new HashMap<String, List<HttpCookie>>();
+			}
+		};
+
+		@Override
+		protected Map<String, List<HttpCookie>> getCookiesMap() {
+			return cookies.get();
+		}
+	}
+
 	public static final class Recoverable extends Exception {
 		private final int httpCode;
 		public Recoverable() { this(null, -1); }
@@ -1680,7 +1748,7 @@ public final class CUrl {
 		}
 
 	}
-	
+
 	public static void main(String[] args) {
 		System.out.println(new CUrl().opt(args).exec(null));
 	}
