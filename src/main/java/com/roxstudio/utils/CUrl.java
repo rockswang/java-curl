@@ -12,6 +12,8 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
+import java.text.SimpleDateFormat;
+import java.text.DateFormat;
 
 /**
  * Note:
@@ -27,6 +29,7 @@ public final class CUrl {
 	private static final CookieStore cookieStore = new CookieStore();
 	private static HostnameVerifier insecureVerifier = null;
 	private static SSLSocketFactory insecureFactory = null;
+	private static boolean verbose = false;
 
 	static {
 		try {
@@ -101,6 +104,8 @@ public final class CUrl {
 			"--request", 27,				// COMMAND  Specify request command to use
 			"--x-max-download", 29,			// BYTES Maximum bytes allowed for the download
 			"--x-tags", 30,					// DATA extra key-value pairs, storage only
+			"--verbose", 33,				// Verbose
+			"-v", 33,						// Verbose
 			"", 0 // placeholder
 	);
 
@@ -161,6 +166,13 @@ public final class CUrl {
 	 */
 	public final CUrl insecure() {
 		return opt("-k");
+	}
+
+	/**
+	 * Verbose output
+	 */
+	public final CUrl verbose() {
+		return opt("-v");
 	}
 
 	/**
@@ -769,6 +781,9 @@ public final class CUrl {
 				case 31: //
 					insecure = true;
 					break;
+				case 33: //
+					verbose = true;
+					break;
 				default: lastEx = new IllegalArgumentException("option " + opt + ": is unknown");
 			}
 			if (lastEx != null)
@@ -823,7 +838,13 @@ public final class CUrl {
 					locations.add(urlObj);
 					responseHeaders.add(new ArrayList<String[]>());
 				}
+				if (verbose) {
+					Util.logStderr("Prepare open connection - URL.openConnection()");
+				}
 				HttpURLConnection con = (HttpURLConnection) urlObj.openConnection(proxy);
+				if (verbose) {
+					Util.logStderr("Done prepare open connection");
+				}
 				con.setRequestMethod(method);
 				con.setUseCaches(false);
 				con.setConnectTimeout((int) (connectTimeout * 1000f));
@@ -838,7 +859,13 @@ public final class CUrl {
 						((HttpsURLConnection) con).setSSLSocketFactory(getSocketFactory(getIO(cert.substring(0, idx)), cert.substring(idx + 1)));
 					}
 				}
+				if (verbose) {
+					Util.logStderr("Prepare headers");
+				}
 				for (Map.Entry<String, String> h: headers.entrySet()) con.setRequestProperty(h.getKey(), h.getValue());
+				if (verbose) {
+					Util.logStderr("Done preparing headers");
+				}
 				if ("POST".equals(method) || "PUT".equals(method)) {
 					con.setDoInput(true);
 					con.setDoOutput(true);
@@ -894,19 +921,34 @@ public final class CUrl {
 						}
 					}
 					try {
+						if (verbose) {
+							Util.logStderr("Start getOutputStream");
+						}
 						OutputStream os = con.getOutputStream();
 						os.write(data);
 						os.flush();
+						if (verbose) {
+							Util.logStderr("Done sending data");
+						}
 					} catch (Exception ex) { // connect timeout
 						throw new Recoverable(ex, -1);
 					}
 				}
 				redirect = null;
+				if (verbose) {
+					Util.logStderr("Get HTTP Response Code - HttpURLConnection.getResponseCode()");
+				}
 				httpCode = con.getResponseCode();
 				if (httpCode >= 300 && httpCode < 400) redirect = con.getHeaderField("Location");
+				if (verbose) {
+					Util.logStderr("HTTP Response Code: %d", httpCode);
+				}
 				if (redirect != null) retryLeft = retry;
 				InputStream is;
 				try {
+					if (verbose) {
+						Util.logStderr("Getting input stream");
+					}
 					is = con.getInputStream();
 				} catch (Exception e) {
 					if (httpCode == 407 && proxy != Proxy.NO_PROXY && "https".equals(urlObj.getProtocol())
@@ -917,7 +959,13 @@ public final class CUrl {
 					is = con.getErrorStream();
 				}
 				if (is == null && lastEx != null) throw lastEx;
+				if (verbose) {
+					Util.logStderr("Start reading output");
+				}
 				byte bb[] = Util.readStream(is, maxDownload, true), b0, b1;
+				if (verbose) {
+					Util.logStderr("Done reading output");
+				}
 				if (maxDownload <= 0 && bb != null && bb.length > 2) {
 					if ((b0 = bb[0]) == 0x1F && bb[1] == (byte) 0x8B) is = new GZIPInputStream(new ByteArrayInputStream(bb)); // gzip
 					if (b0 == 0x78 && ((b1 = bb[1]) == 0x01 || b1 == 0x5E || b1 == (byte) 0x9C || b1 == (byte) 0xDA)) is = new InflaterInputStream(new ByteArrayInputStream(bb)); // deflate/zlib
@@ -1060,6 +1108,9 @@ public final class CUrl {
 			TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 			factory.init(keyStore);
 			managers = factory.getTrustManagers();
+		}
+		if (verbose) {
+			Util.logStderr("Create socket factory");
 		}
 		SSLContext sc = SSLContext.getInstance("TLS");
 		sc.init(null, managers, new SecureRandom());
@@ -1341,7 +1392,9 @@ public final class CUrl {
 
 		public static void logStderr(String msg, Object... args) {
 			if (args.length > 0) msg = String.format(msg, args);
-			System.err.println("[ERR] [" + new Date() + "] " + msg);
+			DateFormat fmt =  new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+			System.err.println("[ERR] [" + fmt.format(new Date()) + "] " + msg);
+			//System.err.println("[ERR] [" + new Date() + "] " + msg);
 		}
 
 		public static <K, V> V mapGet(Map<K, V> map, K key, V fallback) {
@@ -1754,3 +1807,5 @@ public final class CUrl {
 	}
 
 }
+
+

@@ -213,6 +213,7 @@ java -jar java-curl-1.2.2.jar https://mysecuritysite.com -E cert.jks:123456
 | -H, --header		| header				| Add a request header line with the syntax:<br/>-- "Host: baidu.com": Add/set a normal request header key-value pair<br/>-- "Accept:": Delete the given request header <br/>-- "X-Custom-Header;": Add/set a custom request header with a value of null |
 | -I, --head		| NO					| Request using the HEAD method |
 | -k, --insecure	| insecure				| Ignore HTTPS certificate security check |
+| -v, --verbose 	| verbose 				| More verbose output with timestamp  |
 | -L, --location	| location				| Automatic follow redirect (not enabled by default) |
 | -m, --max-time	| timeout				| Transmission timeout, in seconds, default 0, that is, never timeout |
 | -o, --output		| output				| Specify the output file / IO object, the default stdout, which is "-" |

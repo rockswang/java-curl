@@ -23,6 +23,7 @@
   <properties>
     <!--<maven.javadoc.failOnError>false</maven.javadoc.failOnError>-->
     <release-version>1.2.2.2</release-version>
+    <maven-jar-plugin.version>3.1.1</maven-jar-plugin.version>
   </properties>
 
   <dependencies>
