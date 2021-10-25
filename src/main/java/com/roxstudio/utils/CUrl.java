@@ -852,9 +852,11 @@ public final class CUrl {
 				con.setInstanceFollowRedirects(false);
 				if (con instanceof HttpsURLConnection) {
 					if (insecure) {
+					        Util.logStderr("Skip TLS validation");
 						((HttpsURLConnection) con).setHostnameVerifier(insecureVerifier);
 						((HttpsURLConnection) con).setSSLSocketFactory(insecureFactory);
 					} else if (cert != null) {
+					        Util.logStderr("Enable client cert");
 						int idx = cert.lastIndexOf(':');
 						((HttpsURLConnection) con).setSSLSocketFactory(getSocketFactory(getIO(cert.substring(0, idx)), cert.substring(idx + 1)));
 					}
@@ -1094,26 +1096,28 @@ public final class CUrl {
 	}
 
 	private static SSLSocketFactory getSocketFactory(IO cert, String password) throws Exception {
-		TrustManager[] managers;
-		if (cert == null) {
-			managers = new TrustManager[] { new X509TrustManager() {
-				public X509Certificate[] getAcceptedIssuers() { return null; }
-				public void checkClientTrusted(X509Certificate[] arg0, String arg1) {}
-				public void checkServerTrusted(X509Certificate[] arg0, String arg1) {}
-			}};
-		} else {
+		TrustManager[] t_managers=null;
+        KeyManager[]   k_managers=null;
+		Util.logStderr("Load default trust manager");
+		t_managers = new TrustManager[] { new X509TrustManager() {
+			public X509Certificate[] getAcceptedIssuers() { return null; }
+			public void checkClientTrusted(X509Certificate[] arg0, String arg1) {}
+			public void checkServerTrusted(X509Certificate[] arg0, String arg1) {}
+		}};
+		if (cert != null) {
+			Util.logStderr("Load key store");
 			KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType()); // JKS for java, BKS for android
 			keyStore.load(cert.getInputStream(), password.toCharArray());
 			cert.close();
-			TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-			factory.init(keyStore);
-			managers = factory.getTrustManagers();
+			KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+			factory.init(keyStore, password.toCharArray());
+			k_managers = factory.getKeyManagers();
 		}
 		if (verbose) {
 			Util.logStderr("Create socket factory");
 		}
 		SSLContext sc = SSLContext.getInstance("TLS");
-		sc.init(null, managers, new SecureRandom());
+		sc.init(k_managers, t_managers, new SecureRandom());
 		return sc.getSocketFactory();
 	}
 
