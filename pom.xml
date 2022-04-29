@@ -201,6 +201,9 @@
             </executions>
             <configuration>
               <mainClass>com.roxstudio.utils.CUrl</mainClass>
+              <buildArgs>
+                <buildArg>--no-fallback</buildArg>
+              </buildArgs>
             </configuration>
           </plugin>
         </plugins>
