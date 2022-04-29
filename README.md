@@ -8,7 +8,7 @@
 java-curl is a pure-java HTTP utility implemented based on HttpURLConnection in the standard JRE, while the usage references to the commonly-used CURL command line tool under Linux.
 
 # Features
-* Based on the standard JRE, the source compatibility level is 1.6, can be used on Java server-side, Android and other Java environments.
+* Based on the standard JRE, the source compatibility level is 11, can be used on Java server-side, Android and other Java environments.
 * The code is super compact (one java file with less than 2000 lines), without any external dependencies, can be easily reused at source level.
 * Easy to use, fully compatible with the most common switches of CURL tool, can be directly used as a command line tool.
 * Support all HTTP methods; Support multi-part file uploads; Support simple HTTP authentication.
