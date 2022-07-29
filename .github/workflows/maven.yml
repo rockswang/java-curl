@@ -50,6 +50,7 @@ jobs:
       - name: Release with Notes
         uses: softprops/action-gh-release@v1
         with:
+          target_commitish: ${{ github.sha }}
           files: |
             java-curl*
           tag_name: ${{ steps.tag.outputs.release_tag }}
