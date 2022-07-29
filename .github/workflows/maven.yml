@@ -15,9 +15,6 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
     steps:
-#       - name: Generate release tag
-#         id: tag
-#         run: echo "TAG=pr-${GITHUB_REF##*/}" >> $GITHUB_ENV && echo "SHORT_SHA=`git rev-parse --short HEAD`" >> $GITHUB_ENV
       - uses: graalvm/setup-graalvm@v1
         with:
           version: "latest"
@@ -49,7 +46,6 @@ jobs:
       - name: Release with Notes
         uses: softprops/action-gh-release@v1
         with:
-          draft: true
           tag_name: ${{ github.event.repository.updated_at }}
           target_commitish: ${{ github.sha }}
           files: |
