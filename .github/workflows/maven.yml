@@ -16,8 +16,7 @@ jobs:
       - name: Generate release tag
         id: tag
         run: |
-          TAGNAME=`date +%F`
-          echo "::set-output name=release_tag::1.0.$TAGNAME"
+          echo "::set-output name=release_tag::1.0.$GITHUB_RUN_ID"
       - uses: graalvm/setup-graalvm@v1
         with:
           version: "latest"
