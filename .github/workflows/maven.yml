@@ -36,7 +36,7 @@ jobs:
           
       - name: rename
         if: matrix.os == 'ubuntu-latest'
-        run: mv target/java-curl java-curl-${{ matrix.os }}
+        run: pwd;ls -ltr;mv target/java-curl java-curl-${{ matrix.os }}
       - name: rename
         if: matrix.os == 'macos-latest'
         run: mv target/java-curl java-curl-${{ matrix.os }}
