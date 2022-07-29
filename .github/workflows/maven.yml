@@ -39,10 +39,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            *.deb
-            *.rpm
-            *.msi
-            *.dmg            
+            target/java-curl*
           tag_name: ${{ steps.tag.outputs.release_tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
