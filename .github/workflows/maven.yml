@@ -30,3 +30,15 @@ jobs:
         with:
           name: java-curl-${{ matrix.os }}
           path: target/java-curl
+          
+      - name: Release with Notes
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            *.deb
+            *.rpm
+            *.msi
+            *.dmg            
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
