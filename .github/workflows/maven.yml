@@ -32,7 +32,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mvn -ntp -DskipTests -Pnative package
-          mv target/java-curl* java-curl-${{ matrix.os }}
+          mv target/java-curl java-curl-${{ matrix.os }}
+          
+      - name: rename
+        if: matrix.os == 'ubuntu-latest'
+        run: mv target/java-curl java-curl-${{ matrix.os }}
+      - name: rename
+        if: matrix.os == 'macos-latest'
+        run: mv target/java-curl java-curl-${{ matrix.os }}
+      - name: rename
+        if: matrix.os == 'windows-latest'
+        run: mv target/java-curl java-curl-${{ matrix.os }}
+        
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
@@ -43,6 +54,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            target/java-curl*
+            java-curl*
           tag_name: ${{ steps.tag.outputs.release_tag }}
 
