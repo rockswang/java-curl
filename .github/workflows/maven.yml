@@ -30,7 +30,9 @@ jobs:
       - name: create the native image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mvn -ntp -DskipTests -Pnative package
+        run: |
+          mvn -ntp -DskipTests -Pnative package
+          mv target/java-curl* java-curl-${{ matrix.os }}
       - name: Upload binary
         uses: actions/upload-artifact@v2
         with:
