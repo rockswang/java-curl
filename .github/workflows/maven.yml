@@ -1,5 +1,7 @@
 name: CI Build
 
+permissions:
+  contents: write
 on:
   push:
     branches:
