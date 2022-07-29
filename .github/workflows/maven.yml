@@ -49,8 +49,8 @@ jobs:
       - name: Release with Notes
         uses: softprops/action-gh-release@v1
         with:
-          prerelease: true
-          tag_name: ${{ env.TAG }}-${{ env.SHORT_SHA }}
+          draft: true
+          tag_name: ${{ github.ref }}
           target_commitish: ${{ github.sha }}
           files: |
             java-curl*
