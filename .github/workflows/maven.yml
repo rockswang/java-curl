@@ -13,6 +13,11 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
     steps:
+      - name: Generate release tag
+        id: tag
+        run: |
+          TAGNAME=`date +%F`
+          echo "::set-output name=release_tag::1.0.$TAGNAME"
       - uses: graalvm/setup-graalvm@v1
         with:
           version: "latest"
