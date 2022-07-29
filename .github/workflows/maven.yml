@@ -17,8 +17,7 @@ jobs:
     steps:
       - name: Generate release tag
         id: tag
-        run: |
-          echo "::set-output name=release_tag::1.0.$GITHUB_RUN_ID"
+        run: echo "TAG=pr-${GITHUB_REF##*/}" >> $GITHUB_ENV && echo "SHORT_SHA=`git rev-parse --short HEAD`" >> $GITHUB_ENV
       - uses: graalvm/setup-graalvm@v1
         with:
           version: "latest"
@@ -50,8 +49,9 @@ jobs:
       - name: Release with Notes
         uses: softprops/action-gh-release@v1
         with:
+          prerelease: true
+          tag_name: ${{ env.TAG }}-${{ env.SHORT_SHA }}
           target_commitish: ${{ github.sha }}
           files: |
             java-curl*
-          tag_name: ${{ steps.tag.outputs.release_tag }}
 
