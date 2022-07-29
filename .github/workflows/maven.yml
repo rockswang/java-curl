@@ -30,19 +30,16 @@ jobs:
       - name: create the native image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mvn -ntp -DskipTests -Pnative package
-          mv target/java-curl java-curl-${{ matrix.os }}
-          
+        run: mvn -ntp -DskipTests -Pnative package
       - name: rename
         if: matrix.os == 'ubuntu-latest'
-        run: pwd;ls -ltr;mv target/java-curl java-curl-${{ matrix.os }}
+        run: mv target/java-curl java-curl-${{ matrix.os }}
       - name: rename
         if: matrix.os == 'macos-latest'
         run: mv target/java-curl java-curl-${{ matrix.os }}
       - name: rename
         if: matrix.os == 'windows-latest'
-        run: mv target/java-curl java-curl-${{ matrix.os }}
+        run: mv target/java-curl.exe java-curl-${{ matrix.os }}.exe
         
       - name: Upload binary
         uses: actions/upload-artifact@v2
