@@ -46,6 +46,7 @@ jobs:
       - name: Release with Notes
         uses: softprops/action-gh-release@v1
         with:
+          prerelease: true
           tag_name: ${{ github.event.repository.updated_at }}
           target_commitish: ${{ github.sha }}
           files: |
