@@ -15,9 +15,9 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
     steps:
-      - name: Generate release tag
-        id: tag
-        run: echo "TAG=pr-${GITHUB_REF##*/}" >> $GITHUB_ENV && echo "SHORT_SHA=`git rev-parse --short HEAD`" >> $GITHUB_ENV
+#       - name: Generate release tag
+#         id: tag
+#         run: echo "TAG=pr-${GITHUB_REF##*/}" >> $GITHUB_ENV && echo "SHORT_SHA=`git rev-parse --short HEAD`" >> $GITHUB_ENV
       - uses: graalvm/setup-graalvm@v1
         with:
           version: "latest"
