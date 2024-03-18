@@ -5,12 +5,14 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CUrlTest {
 
@@ -76,7 +78,7 @@ public class CUrlTest {
         CUrl curl = curl("http://httpbin.org/post")
                 .form("formItem", "value") // a plain form item
                 .form("file", inMemFile)           // in-memory "file"
-                .form("image", new CUrl.FileIO("D:\\tmp\\a2.png")); // A file in storage, change it to an existing path to avoid failure
+                .form("image", new CUrl.FileIO("src/test/resources/a2.png")); // A file in storage, change it to an existing path to avoid failure
         curl.exec();
         assertEquals(200, curl.getHttpCode());
     }
@@ -168,9 +170,34 @@ public class CUrlTest {
     @Test
     public void selfSignedCertificate() {
         CUrl curl = new CUrl("https://www.baidu.com/")
+                .opt("--verbose")
                 .cert(new CUrl.FileIO("D:/tmp/test_jks.jks"), "123456")
                 .proxy("127.0.0.1", 8888);
         System.out.println(curl.exec(CUrl.UTF8, null));
+    }
+
+    @Test
+    public void givenCorrectRootCA_whenGet_thenSuccess() {
+        // If you have a corporate firewall that intercepts outbound TLS connections, you will need to provide your own
+        // root jks bundle
+        // keytool -importcert -file inputfile.pem -keystore output_file.jks -storetype jks
+        CUrl curl = new CUrl("https://www.baidu.com/")
+                .opt("--verbose")
+                .opt("--cacert", "src/test/resources/global_sign_root_r1.jks")
+                .proxy("127.0.0.1", 8888);
+        curl.exec();
+        assertEquals(200, curl.getHttpCode());
+    }
+
+    @Test
+    public void givenWrongRootCA_whenGet_thenException() {
+        // any random root CA that will fail all targets
+        CUrl curl = new CUrl("https://www.baidu.com/")
+                .opt("--verbose")
+                .opt("--cacert", "src/test/resources/random_root.jks")
+                .proxy("127.0.0.1", 8888);
+        String result = new String(curl.exec(), StandardCharsets.UTF_8);
+        assertTrue(result.contains("unable to find valid certification path to requested target"));
     }
 
     ///////////////////////////////////////////////////////////////////////////////

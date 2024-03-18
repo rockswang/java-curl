@@ -6,7 +6,10 @@ import java.lang.reflect.*;
 import java.net.*;
 import java.net.Proxy;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -30,6 +33,7 @@ public final class CUrl {
 	private static HostnameVerifier insecureVerifier = null;
 	private static SSLSocketFactory insecureFactory = null;
 	private static boolean verbose = false;
+	private static String trustStoreFile = "system";  // default to system trustmanager
 
 	static {
 		try {
@@ -43,13 +47,14 @@ public final class CUrl {
 			insecureVerifier = new HostnameVerifier() {
 				public boolean verify(String hostname, SSLSession session) { return true; }
 			};
-			insecureFactory = getSocketFactory(null, null);
+			insecureFactory = getSocketFactory(null, null, true);
 		} catch (Exception ignored) {}
 	}
 
 	private static final Map<String, Integer> optMap = Util.mapPut(new LinkedHashMap<String, Integer>(),
 			"-E", 32,
 			"--cert", 32, 					// <certificate[:password]> Client certificate file and password
+			"--cacert", 34, 				// <truststore[:password]> Truststore to verify server certs, default to system truststore
 			"--compressed", 1, 				// Request compressed response (using deflate or gzip)
 			"--connect-timeout", 2, 		// SECONDS  Maximum time allowed for connection
 			"-b", 3,
@@ -784,6 +789,10 @@ public final class CUrl {
 				case 33: //
 					verbose = true;
 					break;
+				case 34: // --cacert file_name to specify the truststore file, "system" for system truststore
+					trustStoreFile = options.get(++i);
+					break;
+
 				default: lastEx = new IllegalArgumentException("option " + opt + ": is unknown");
 			}
 			if (lastEx != null)
@@ -851,14 +860,20 @@ public final class CUrl {
 				con.setReadTimeout((int) (maxTime * 1000f));
 				con.setInstanceFollowRedirects(false);
 				if (con instanceof HttpsURLConnection) {
-					if (insecure) {
-					        Util.logStderr("Skip TLS validation");
+										if (insecure) {
+						Util.logStderr("Skip TLS validation");
 						((HttpsURLConnection) con).setHostnameVerifier(insecureVerifier);
 						((HttpsURLConnection) con).setSSLSocketFactory(insecureFactory);
-					} else if (cert != null) {
-					        Util.logStderr("Enable client cert");
-						int idx = cert.lastIndexOf(':');
-						((HttpsURLConnection) con).setSSLSocketFactory(getSocketFactory(getIO(cert.substring(0, idx)), cert.substring(idx + 1)));
+					} else {
+						String keyStoreFn = null;
+						String keyStorePass = null;
+						if ( cert != null) {
+							Util.logStderr("Enable client cert");
+							int idx = cert.lastIndexOf(':');
+							keyStoreFn = cert.substring(0, idx);
+							keyStorePass = cert.substring(idx + 1);
+						}
+						((HttpsURLConnection) con).setSSLSocketFactory(getSocketFactory(getIO(keyStoreFn), keyStorePass, false));
 					}
 				}
 				if (verbose) {
@@ -998,6 +1013,9 @@ public final class CUrl {
 	/** 根据key获取对应IO，如果iomap中没有，则key作为文件路径创建一个FileIO  */
 	private IO getIO(String key) {
 		IO io;
+		if (key == null || key.isEmpty()) {
+			return null;
+		}
 		return (io = iomap.get(key)) == null ? new FileIO(key) : io;
 	}
 
@@ -1095,14 +1113,71 @@ public final class CUrl {
 		return false;
 	}
 
-	private static SSLSocketFactory getSocketFactory(IO cert, String password) throws Exception {
+	private static X509TrustManager getTrustManager() throws KeyStoreException {
+		if ( trustStoreFile.equals("system") ) {
+			Util.logStderr("Load default trust manager"); // default behavior
+			return null;
+		}
+		try {
+			KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+			Util.logStderr("Build trust manager from file: " + trustStoreFile);
+			int idx = trustStoreFile.lastIndexOf(':');
+			if (idx < 0) {
+				FileInputStream inputStream = new FileInputStream(String.valueOf(trustStoreFile));
+				trustStore.load(inputStream, null);
+			} else {
+				FileInputStream inputStream = new FileInputStream(String.valueOf(trustStoreFile.substring(0, idx)));
+				trustStore.load(inputStream, trustStoreFile.substring(idx + 1).toCharArray());
+			}
+			TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+			trustManagerFactory.init(trustStore);
+
+			TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+			if (trustManagers.length == 0) {
+				throw new KeyStoreException("No TrustManagers found");
+			}
+			return Arrays.stream(trustManagers)
+					.filter(tm -> tm instanceof X509TrustManager )
+					.map(tm -> (X509TrustManager) tm)
+					.findFirst()
+					.orElseThrow(() -> new KeyStoreException("No X509TrustManager found"));
+		} catch (IOException e) {
+			throw new KeyStoreException("TrustStore file not found or failed to load: " + e.getMessage());
+		} catch (NoSuchAlgorithmException | CertificateException e) {
+			throw new KeyStoreException("Failed to parse truststore: " + e.getMessage());
+		}
+	}
+
+	private static SSLSocketFactory getSocketFactory(IO cert, String password, Boolean insecure) throws Exception {
 		TrustManager[] t_managers=null;
         KeyManager[]   k_managers=null;
-		Util.logStderr("Load default trust manager");
 		t_managers = new TrustManager[] { new X509TrustManager() {
 			public X509Certificate[] getAcceptedIssuers() { return null; }
 			public void checkClientTrusted(X509Certificate[] arg0, String arg1) {}
-			public void checkServerTrusted(X509Certificate[] arg0, String arg1) {}
+			public void checkServerTrusted(X509Certificate[] certs, String authType) throws CertificateException {
+				if (verbose) {
+					for (X509Certificate cert: certs) {
+						Util.logStderr("- Subject  : " + cert.getSubjectX500Principal());
+						Util.logStderr("  Serial # : " + String.join(":", cert.getSerialNumber().toString(16).split("(?<=\\G.{2})")));
+						Util.logStderr("  Issued by: " + cert.getIssuerX500Principal());
+					}
+				}
+				if (insecure) {
+					return; // no need to build the trustManager, just return (success)
+				}
+				try {
+					final X509TrustManager trustManager = getTrustManager();
+					if (trustManager != null) {
+						trustManager.checkServerTrusted(certs, authType);
+					}
+				} catch (KeyStoreException e) {
+					try {
+						throw new CertificateException(e.getMessage());
+					} catch (Exception ex) {
+						throw new RuntimeException(ex);
+					}
+				}
+			}
 		}};
 		if (cert != null) {
 			Util.logStderr("Load key store");
