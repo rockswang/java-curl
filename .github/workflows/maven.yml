@@ -1,0 +1,54 @@
+name: CI Build
+
+permissions:
+  contents: write
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Building java-curl on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          version: "latest"
+          java-version: "17"
+          components: "native-image"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: create the native image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mvn -ntp -DskipTests -Pnative package
+      - name: rename
+        if: matrix.os == 'ubuntu-latest'
+        run: mv target/java-curl java-curl-${{ matrix.os }}
+      - name: rename
+        if: matrix.os == 'macos-latest'
+        run: mv target/java-curl java-curl-${{ matrix.os }}
+      - name: rename
+        if: matrix.os == 'windows-latest'
+        run: mv target/java-curl.exe java-curl-${{ matrix.os }}.exe
+        
+      - name: Upload binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: java-curl-${{ matrix.os }}
+          path: target/java-curl
+          
+      - name: Release with Notes
+        uses: softprops/action-gh-release@v1
+        with:
+#           draft: true
+          tag_name: ${{ github.run_number }}.${{ github.run_id }}
+          target_commitish: ${{ github.sha }}
+          files: |
+            java-curl*
+
